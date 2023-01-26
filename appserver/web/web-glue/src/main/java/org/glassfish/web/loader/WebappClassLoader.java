@@ -186,7 +186,7 @@ public class WebappClassLoader
     extends URLClassLoader
     implements Reloader, ResourceClassLoader,
         InstrumentableClassLoader, PreDestroy,
-        DDPermissionsLoader, JarFileResourcesProvider
+        DDPermissionsLoader
 {
     // ------------------------------------------------------- Static Variables
 
@@ -753,14 +753,6 @@ public class WebappClassLoader
         this.antiJARLocking = antiJARLocking;
     }
 
-
-    @Override
-    public JarFile[] getJarFiles() {
-        if (!openJARs()) {
-            return null;
-        }
-        return jarFiles;
-    }
 
 
     /**
