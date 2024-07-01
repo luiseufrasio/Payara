@@ -67,12 +67,12 @@ import org.glassfish.external.probe.provider.StatsProviderManager;
 
 import javax.security.auth.Subject;
 import javax.security.auth.SubjectDomainCombiner;
-import jakarta.security.jacc.*;
+import jakarta.security.jacc.Policy;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.*;
+import java.security.PrivilegedExceptionAction;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,6 +81,13 @@ import static com.sun.enterprise.security.common.AppservAccessController.doPrivi
 import static com.sun.enterprise.security.common.AppservAccessController.privileged;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.SEVERE;
+
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.CodeSource;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.ProtectionDomain;
 
 /**
  * This class is used by the EJB server to manage security. All the container object only call into this object for
@@ -106,7 +113,6 @@ public final class EJBSecurityManager implements SecurityManager {
     private final RunAsIdentityDescriptor runAs;
 
     // JACC related
-    private static PolicyConfigurationFactory policyConfigurationFactory;
     private String ejbName;
 
     // contextId id is the same as an appname. This will be used to get
@@ -437,7 +443,6 @@ public final class EJBSecurityManager implements SecurityManager {
         }
     }
 
-
     /**
      * This method returns the Client Principal who initiated the current Invocation.
      *
@@ -734,25 +739,6 @@ public final class EJBSecurityManager implements SecurityManager {
         }
 
         return result;
-    }
-
-    // Obtains PolicyConfigurationFactory once for class
-    private static PolicyConfigurationFactory getPolicyFactory() throws PolicyContextException {
-        synchronized (EJBSecurityManager.class) {
-            if (policyConfigurationFactory == null) {
-                try {
-                    policyConfigurationFactory = PolicyConfigurationFactory.getPolicyConfigurationFactory();
-                } catch (ClassNotFoundException cnfe) {
-                    _logger.severe("jaccfactory.notfound");
-                    throw new PolicyContextException(cnfe);
-                } catch (PolicyContextException pce) {
-                    _logger.severe("jaccfactory.notfound");
-                    throw pce;
-                }
-            }
-        }
-
-        return policyConfigurationFactory;
     }
 
     private static void resetPolicyContext(final String newV, String oldV) throws Throwable {

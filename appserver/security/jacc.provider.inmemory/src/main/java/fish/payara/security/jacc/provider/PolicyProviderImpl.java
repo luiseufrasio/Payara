@@ -41,38 +41,18 @@ package fish.payara.security.jacc.provider;
 
 import fish.payara.jacc.ContextProvider;
 import fish.payara.jacc.JaccConfigurationFactory;
-import java.security.Permission;
-import java.security.ProtectionDomain;
 import org.glassfish.exousia.modules.locked.SimplePolicyProvider;
-
 
 /**
  * Implementation of jacc PolicyProvider class
  */
 public class PolicyProviderImpl extends SimplePolicyProvider {
-    
-
     private static final ThreadLocal<Object> contextProviderReentry = new ThreadLocal<Object>() {
         @Override
         protected Object initialValue() {
             return new byte[]{0};
         }
     };
-
-    @Override
-    public boolean implies(ProtectionDomain domain, Permission permission) {
-
-        byte[] alreadyCalled = (byte[]) contextProviderReentry.get();
-        if (alreadyCalled[0] == 1) {
-            return true;
-        }
-        alreadyCalled[0] = 1;
-        try {
-            return super.implies(domain, permission);
-        } finally {
-            alreadyCalled[0] = 0;
-        }
-    }
 
     // Obtains PolicyConfigurationFactory
     private PolicyConfigurationFactoryImpl getPolicyFactory() {
