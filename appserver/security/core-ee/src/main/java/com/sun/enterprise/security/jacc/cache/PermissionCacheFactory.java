@@ -43,7 +43,7 @@ package com.sun.enterprise.security.jacc.cache;
 import java.net.SocketPermission;
 import java.security.CodeSource;
 import java.security.Permission;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.PropertyPermission;

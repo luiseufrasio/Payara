@@ -55,7 +55,7 @@ import java.net.URL;
 import java.security.CodeSource;
 import java.security.NoSuchAlgorithmException;
 import java.security.PermissionCollection;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.security.URIParameter;
 import java.security.cert.Certificate;
 

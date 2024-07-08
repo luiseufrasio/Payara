@@ -53,7 +53,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.Vector;

@@ -42,7 +42,7 @@ package com.sun.enterprise.security.ee;
 
 import static java.util.logging.Level.FINE;
 
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.util.Collection;
 import java.util.logging.Logger;
 

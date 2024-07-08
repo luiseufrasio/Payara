@@ -50,7 +50,7 @@ import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.security.CodeSource;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.security.Principal;
 import java.security.ProtectionDomain;
 import java.security.cert.Certificate;

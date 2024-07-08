@@ -72,7 +72,7 @@ import java.net.URL;
 import java.security.AccessControlException;
 import java.security.CodeSource;
 import java.security.Permission;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.ProtectionDomain;

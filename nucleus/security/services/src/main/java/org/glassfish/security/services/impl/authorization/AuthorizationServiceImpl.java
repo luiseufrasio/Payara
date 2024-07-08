@@ -50,7 +50,7 @@ import java.util.Set;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.ProtectionDomain;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.security.CodeSource;
 import java.security.CodeSigner;
 import javax.security.auth.Subject;

@@ -115,7 +115,7 @@ import java.security.CodeSource;
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.security.Permissions;
-import java.security.Policy;
+import jakarta.security.jacc.Policy;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.text.MessageFormat;
