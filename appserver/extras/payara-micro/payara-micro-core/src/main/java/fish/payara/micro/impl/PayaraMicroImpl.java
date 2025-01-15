@@ -1751,7 +1751,9 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
             public void run() {
                 try {
                     if (gf != null) {
+                        LOGGER.log(Level.INFO, "Stopping Micro ...");
                         gf.stop();
+                        LOGGER.log(Level.INFO, "Payara Micro STOPPED");
                         gf.dispose();
                     }
                 } catch (GlassFishException ex) {
