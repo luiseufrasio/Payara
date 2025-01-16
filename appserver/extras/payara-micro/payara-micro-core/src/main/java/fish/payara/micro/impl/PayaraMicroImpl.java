@@ -1760,7 +1760,6 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
                 try {
                     configureLogger(LOGGER);
                     if (gf != null) {
-                        LOGGER.log(Level.INFO, "Stopping Micro ...");
                         gf.stop();
                         LOGGER.log(Level.INFO, "Payara Micro STOPPED");
                         gf.dispose();
