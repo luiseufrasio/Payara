@@ -1745,20 +1745,20 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
         LOGGER.log(Level.INFO, "Deployed {0} archive(s)", deploymentCount);
     }
 
-    private void configureLogger() {
+    private void configureLogger(Logger logger) {
         ConsoleHandler consoleHandler = new ConsoleHandler();
         consoleHandler.setLevel(Level.ALL);
-        LOGGER.addHandler(consoleHandler);
-        LOGGER.setLevel(Level.ALL);
+        logger.addHandler(consoleHandler);
+        logger.setLevel(Level.ALL);
     }
 
     private void addShutdownHook() {
-        configureLogger();
         Runtime.getRuntime().addShutdownHook(new Thread(
                 "Micro Shutdown Hook") {
             @Override
             public void run() {
                 try {
+                    configureLogger(LOGGER);
                     if (gf != null) {
                         LOGGER.log(Level.INFO, "Stopping Micro ...");
                         gf.stop();
