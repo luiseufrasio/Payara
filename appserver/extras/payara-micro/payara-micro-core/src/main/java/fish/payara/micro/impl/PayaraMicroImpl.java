@@ -212,7 +212,7 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
     private boolean warmup;
     private boolean hotDeploy;
 
-    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+    private static final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     /**
      * Runs a Payara Micro server used via java -jar payara-micro.jar
@@ -225,6 +225,13 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
      */
     public static void main(String[] args) throws Exception {
         create(args);
+
+        try {
+            shutdownLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.INFO, "Shutdown process interrupted", e);
+        }
     }
 
     public static PayaraMicroBoot create(String[] args) throws Exception {
@@ -1769,13 +1776,6 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
                 }
             }
         });
-
-        try {
-            shutdownLatch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOGGER.log(Level.INFO, "Shutdown process interrupted", e);
-        }
     }
 
     /**
