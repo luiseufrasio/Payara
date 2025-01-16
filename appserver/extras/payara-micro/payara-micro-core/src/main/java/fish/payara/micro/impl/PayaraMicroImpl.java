@@ -1758,6 +1758,7 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
             @Override
             public void run() {
                 try {
+                    this.setDaemon(false);
                     configureLogger(LOGGER);
                     if (gf != null) {
                         gf.stop();
