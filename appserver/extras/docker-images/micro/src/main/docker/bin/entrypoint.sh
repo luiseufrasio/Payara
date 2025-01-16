@@ -39,20 +39,10 @@
 
 set -e
 
-# Trap para realizar shutdown gracioso
-trap 'echo "Stopping Payara-Micro gracefully...";
-      kill -TERM "$child" 2>/dev/null;
-      wait $child' SIGTERM
-
 # Inicia o processo principal e redireciona logs para stdout e stderr do container
 exec java ${DEBUG_OPTS} \
     -XX:MaxRAMPercentage=${MEM_MAX_RAM_PERCENTAGE} \
     -Xss${MEM_XSS} \
     -XX:+UseContainerSupport \
     ${JVM_ARGS} \
-    -jar payara-micro.jar "$@" \
-    > /proc/1/fd/1 2>/proc/1/fd/2 &
-child=$!
-
-# Espera o processo finalizar
-wait $child
+    -jar payara-micro.jar "$@"
