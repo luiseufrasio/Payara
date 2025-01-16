@@ -39,20 +39,20 @@
 
 set -e
 
-# Doing a Graceful Shutdown before container stops
-trap 'echo "Stopping Payara-Micro gracefully";
-      kill -TERM "$child";
-      sleep 15;
-      wait $child;
-      echo "Payara-Micro stopped. Exiting gracefully";' SIGTERM
+# Trap para realizar shutdown gracioso
+trap 'echo "Stopping Payara-Micro gracefully...";
+      kill -TERM "$child" 2>/dev/null;
+      wait $child' SIGTERM
 
+# Inicia o processo principal e redireciona logs para stdout e stderr do container
 exec java ${DEBUG_OPTS} \
     -XX:MaxRAMPercentage=${MEM_MAX_RAM_PERCENTAGE} \
     -Xss${MEM_XSS} \
     -XX:+UseContainerSupport \
     ${JVM_ARGS} \
-    -jar payara-micro.jar "$@" &
+    -jar payara-micro.jar "$@" \
+    > /proc/1/fd/1 2>/proc/1/fd/2 &
 child=$!
 
-# Wait Payara-Micro Process before finish the container
+# Espera o processo finalizar
 wait $child
