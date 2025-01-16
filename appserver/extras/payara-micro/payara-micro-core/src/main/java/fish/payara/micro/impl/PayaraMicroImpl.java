@@ -1745,11 +1745,13 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
         LOGGER.log(Level.INFO, "Deployed {0} archive(s)", deploymentCount);
     }
 
-    private void configureLogger(Logger logger) {
+    private void flushLog(Logger logger) {
         ConsoleHandler consoleHandler = new ConsoleHandler();
         consoleHandler.setLevel(Level.ALL);
         logger.addHandler(consoleHandler);
         logger.setLevel(Level.ALL);
+        consoleHandler.flush();
+        consoleHandler.close();
     }
 
     private void addShutdownHook() {
@@ -1758,21 +1760,16 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
             @Override
             public void run() {
                 try {
-                    configureLogger(LOGGER);
                     if (gf != null) {
                         gf.stop();
                         LOGGER.log(Level.INFO, "Payara Micro STOPPED");
+                        flushLog(LOGGER);
                         gf.dispose();
                     }
                 } catch (GlassFishException ex) {
                 } catch (IllegalStateException ex) {
                     // Just log at a fine level and move on
                     LOGGER.log(Level.FINE, "Already shut down");
-                } finally {
-                    Arrays.stream(LOGGER.getHandlers()).findFirst().ifPresent(handler -> {
-                        handler.flush();
-                        handler.close();
-                    });
                 }
             }
         });
