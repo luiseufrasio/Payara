@@ -73,6 +73,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -111,8 +112,6 @@ import fish.payara.micro.cmd.options.RuntimeOptions;
 import fish.payara.micro.cmd.options.ValidationException;
 import fish.payara.micro.data.InstanceDescriptor;
 import fish.payara.nucleus.executorservice.PayaraFileWatcher;
-
-import java.util.concurrent.CountDownLatch;
 
 /**
  * Main class for Bootstrapping Payara Micro Edition This class is used from
@@ -212,8 +211,6 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
     private boolean warmup;
     private boolean hotDeploy;
 
-    private static final CountDownLatch shutdownLatch = new CountDownLatch(1);
-
     /**
      * Runs a Payara Micro server used via java -jar payara-micro.jar
      *
@@ -225,13 +222,6 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
      */
     public static void main(String[] args) throws Exception {
         create(args);
-
-        try {
-            shutdownLatch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOGGER.log(Level.INFO, "Shutdown process interrupted", e);
-        }
     }
 
     public static PayaraMicroBoot create(String[] args) throws Exception {
@@ -1755,7 +1745,15 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
         LOGGER.log(Level.INFO, "Deployed {0} archive(s)", deploymentCount);
     }
 
+    private void configureLogger() {
+        ConsoleHandler consoleHandler = new ConsoleHandler();
+        consoleHandler.setLevel(Level.ALL);
+        LOGGER.addHandler(consoleHandler);
+        LOGGER.setLevel(Level.ALL);
+    }
+
     private void addShutdownHook() {
+        configureLogger();
         Runtime.getRuntime().addShutdownHook(new Thread(
                 "Micro Shutdown Hook") {
             @Override
@@ -1771,8 +1769,6 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
                 } catch (IllegalStateException ex) {
                     // Just log at a fine level and move on
                     LOGGER.log(Level.FINE, "Already shut down");
-                } finally {
-                    shutdownLatch.countDown();
                 }
             }
         });
