@@ -112,6 +112,8 @@ import fish.payara.micro.cmd.options.ValidationException;
 import fish.payara.micro.data.InstanceDescriptor;
 import fish.payara.nucleus.executorservice.PayaraFileWatcher;
 
+import java.util.concurrent.CountDownLatch;
+
 /**
  * Main class for Bootstrapping Payara Micro Edition This class is used from
  * applications to create a full JavaEE runtime environment and deploy war
@@ -209,6 +211,8 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
     private int initialJoinWait = 1;
     private boolean warmup;
     private boolean hotDeploy;
+
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     /**
      * Runs a Payara Micro server used via java -jar payara-micro.jar
@@ -1761,13 +1765,17 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
                     // Just log at a fine level and move on
                     LOGGER.log(Level.FINE, "Already shut down");
                 } finally {
-                    for (Handler handler : LOGGER.getHandlers()) {
-                        handler.flush();
-                        handler.close();
-                    }
+                    shutdownLatch.countDown();
                 }
             }
         });
+
+        try {
+            shutdownLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.INFO, "Shutdown process interrupted", e);
+        }
     }
 
     /**
