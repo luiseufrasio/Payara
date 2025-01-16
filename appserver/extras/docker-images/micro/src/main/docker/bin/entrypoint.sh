@@ -41,7 +41,7 @@ set -e
 
 # Doing a Graceful Shutdown before container stops
 trap 'echo "Stopping Payara-Micro gracefully";
-      kill "$child" 2>/dev/null;' SIGTERM
+      kill -TERM "$child" 2>/dev/null;' SIGTERM
 
 exec java ${DEBUG_OPTS} \
     -XX:MaxRAMPercentage=${MEM_MAX_RAM_PERCENTAGE} \
