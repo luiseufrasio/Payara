@@ -50,7 +50,8 @@ exec java ${DEBUG_OPTS} \
     -Xss${MEM_XSS} \
     -XX:+UseContainerSupport \
     ${JVM_ARGS} \
-    -jar payara-micro.jar "$@"
+    -jar payara-micro.jar "$@" &
+child=$!
 
 # Wait Payara-Micro Process before finish the container
 wait $child
