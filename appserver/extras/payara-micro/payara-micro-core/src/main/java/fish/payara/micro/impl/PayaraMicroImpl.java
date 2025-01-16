@@ -1760,6 +1760,11 @@ public class PayaraMicroImpl implements PayaraMicroBoot {
                 } catch (IllegalStateException ex) {
                     // Just log at a fine level and move on
                     LOGGER.log(Level.FINE, "Already shut down");
+                } finally {
+                    for (Handler handler : LOGGER.getHandlers()) {
+                        handler.flush();
+                        handler.close();
+                    }
                 }
             }
         });

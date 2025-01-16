@@ -51,6 +51,7 @@ ENV PAYARA_DIR=${HOME_DIR} \
     JVM_ARGS="-Djdk.util.zip.disableZip64ExtraFieldValidation=true" \
     MEM_MAX_RAM_PERCENTAGE="70.0" \
     MEM_XSS="512k"
+ENV DEBUG_OPTS=""
 
 # Add Tini
 RUN apk add --no-cache tini

@@ -43,7 +43,12 @@ set -e
 trap 'echo "Stopping Payara-Micro gracefully";
       kill "$child" 2>/dev/null;' SIGTERM
 
-exec java -XX:MaxRAMPercentage=${MEM_MAX_RAM_PERCENTAGE} -Xss${MEM_XSS} -XX:+UseContainerSupport ${JVM_ARGS} -jar payara-micro.jar "$@" &
+exec java ${DEBUG_OPTS} \
+    -XX:MaxRAMPercentage=${MEM_MAX_RAM_PERCENTAGE} \
+    -Xss${MEM_XSS} \
+    -XX:+UseContainerSupport \
+    ${JVM_ARGS} \
+    -jar payara-micro.jar "$@" &
 child=$!
 
 # Wait Payara-Micro Process before finish the container
