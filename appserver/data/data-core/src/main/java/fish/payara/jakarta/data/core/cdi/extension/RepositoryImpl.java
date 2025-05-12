@@ -41,6 +41,7 @@ package fish.payara.jakarta.data.core.cdi.extension;
 
 import fish.payara.jakarta.data.core.util.FindOperationUtility;
 import jakarta.data.repository.By;
+import jakarta.data.repository.OrderBy;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.transaction.HeuristicMixedException;
@@ -121,6 +122,8 @@ public class RepositoryImpl<T> implements InvocationHandler {
     public Object processFindOperation(Object[] args, Class<?> declaredEntityClass, Method method) {
         Annotation[][] parameterAnnotations = method.getParameterAnnotations();
         Class<?>[] types = method.getParameterTypes();
+        OrderBy orderBy = method.getAnnotation(OrderBy.class);
+        String orderByClause = orderBy != null ? orderBy.value() : null;
         if (parameterAnnotations.length == 1 && types.length == 1) {
             Annotation[] annotations = parameterAnnotations[0];
             for (Annotation annotation : annotations) {
@@ -140,7 +143,7 @@ public class RepositoryImpl<T> implements InvocationHandler {
             }
             return null;
         } else {
-            return FindOperationUtility.processFindAllOperation(declaredEntityClass, getEntityManager());
+            return FindOperationUtility.processFindAllOperation(declaredEntityClass, getEntityManager(), orderByClause);
         }
     }
 

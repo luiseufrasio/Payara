@@ -49,23 +49,26 @@ import java.util.stream.Stream;
  */
 public class FindOperationUtility {
     
-    public static Stream<?> processFindAllOperation(Class<?> entityClass, EntityManager em) {
-        Query q = em.createQuery(createBaseFindQuery(entityClass));
+    public static Stream<?> processFindAllOperation(Class<?> entityClass, EntityManager em, String orderByClause) {
+        Query q = em.createQuery(createBaseFindQuery(entityClass, orderByClause));
         return q.getResultStream();
     }
 
     public static List<?> processFindByIdOperation(Object[] args, Class<?> entityClass, EntityManager em, String idNameValue) {
         StringBuilder builder =  new StringBuilder();
-        builder.append(createBaseFindQuery(entityClass));
+        builder.append(createBaseFindQuery(entityClass, null));
         builder.append(" WHERE ").append("o.").append(getIDParameterName(idNameValue)).append("=?1");
         Query q = em.createQuery(builder.toString());
         q.setParameter(1, args[0]);
         return q.getResultList();
     }
     
-    public static String createBaseFindQuery(Class<?> entityClass) {
+    public static String createBaseFindQuery(Class<?> entityClass, String orderByClause) {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ").append("o").append(" FROM ").append(getSingleEntityName(entityClass.getName())).append(" o");
+        if (orderByClause != null && !orderByClause.isEmpty()) {
+            builder.append(" ORDER BY ").append(orderByClause);
+        }
         return builder.toString();
     }
 
