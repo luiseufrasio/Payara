@@ -41,6 +41,7 @@
 package fish.payara.requesttracing.jaxrs.client;
 
 import fish.payara.opentracing.OpenTelemetryService;
+import io.opentelemetry.api.trace.Tracer;
 import org.glassfish.api.invocation.InvocationManager;
 import org.glassfish.hk2.api.ServiceHandle;
 import org.glassfish.hk2.api.ServiceLocator;
@@ -48,8 +49,6 @@ import org.glassfish.internal.api.Globals;
 import org.glassfish.internal.deployment.Deployment;
 
 import fish.payara.nucleus.requesttracing.RequestTracingService;
-import fish.payara.opentracing.OpenTracingService;
-import io.opentracing.Tracer;
 
 /**
  * This is a class hiding internal mechanism of lookup of HK2 services. The
@@ -62,23 +61,21 @@ import io.opentracing.Tracer;
 public final class PayaraTracingServices {
 
     private final RequestTracingService requestTracingService;
-    private final OpenTracingService openTracingService;
 
     private final InvocationManager invocationManager;
     private final Deployment deployment;
-    
+
     private final OpenTelemetryService openTelemetryService;
 
     /**
      * Initialise the tracing services if they are available.
-     * 
+     *
      * @throws RuntimeException if an exception occurs initialising the services.
      */
     public PayaraTracingServices() {
         final ServiceLocator baseServiceLocator = Globals.getStaticBaseServiceLocator();
 
         requestTracingService = getFromServiceHandle(baseServiceLocator, RequestTracingService.class);
-        openTracingService = getFromServiceHandle(baseServiceLocator, OpenTracingService.class);
         invocationManager = getFromServiceHandle(baseServiceLocator, InvocationManager.class);
         deployment = getFromServiceHandle(baseServiceLocator, Deployment.class);
         openTelemetryService = getFromServiceHandle(baseServiceLocator, OpenTelemetryService.class);
@@ -90,7 +87,6 @@ public final class PayaraTracingServices {
      */
     public boolean isTracingAvailable() {
         return requestTracingService != null
-                && openTracingService != null
                 && openTelemetryService != null;
     }
 
@@ -106,18 +102,7 @@ public final class PayaraTracingServices {
     }
 
     /**
-     * @return {@link OpenTracingService}, or null if the HK2 service couldn't be
-     *         initialised.
-     */
-    public OpenTracingService getOpenTracingService() {
-        if (isTracingAvailable()) {
-            return openTracingService;
-        }
-        return null;
-    }
-
-    /**
-     * @return {@link OpenTracingService}, or null if the HK2 service couldn't be
+     * @return {@link OpenTelemetryService}, or null if the HK2 service couldn't be
      *         initialised.
      */
     public OpenTelemetryService getOpenTelemetryService() {
@@ -142,32 +127,20 @@ public final class PayaraTracingServices {
     }
 
     /**
-     * @return application name known to the actual {@link InvocationManager}, or
-     *         null if no invocation manager can be found.
-     */
-    public String getApplicationName() {
-        if (isTracingAvailable()) {
-            return openTracingService.getApplicationName(invocationManager);
-        }
-        return null;
-    }
-
-    /**
      * @return actually active {@link Tracer} for the current application, or null
      *         if the tracing service is not available.
      */
     public Tracer getActiveTracer() {
-        final String applicationName = getApplicationName();
-        if (applicationName == null || !isTracingAvailable()) {
+        if (!isTracingAvailable()) {
             return null;
         }
-        return openTracingService.getTracer(applicationName);
+        return openTelemetryService.getCurrentTracer();
     }
 
     /**
      * Create a service from the given service locator. Throw an exception if the
      * service handle is available but not the service.
-     * 
+     *
      * @return the specified service, or null if the service handle isn't available.
      * @throws RuntimeException if the service initialisation failed.
      */

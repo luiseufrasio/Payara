@@ -54,7 +54,7 @@ import java.util.UUID;
  * @author jonathan coustick
  * @since 5.183
  */
-public class RequestTraceSpanContext implements Serializable, io.opentracing.SpanContext {
+public class RequestTraceSpanContext implements Serializable {
 
     private static final long serialVersionUID = 20180803L;
 
@@ -98,12 +98,10 @@ public class RequestTraceSpanContext implements Serializable, io.opentracing.Spa
         this.traceId = traceId;
     }
 
-    @Override
     public String toTraceId() {
         return traceId.toString();
     }
 
-    @Override
     public String toSpanId() {
         return spanId.toString();
     }
@@ -121,7 +119,6 @@ public class RequestTraceSpanContext implements Serializable, io.opentracing.Spa
         return baggageItems;
     }
 
-    @Override
     public Iterable<Map.Entry<String, String>> baggageItems() {
         return getBaggageItems().entrySet();
     }

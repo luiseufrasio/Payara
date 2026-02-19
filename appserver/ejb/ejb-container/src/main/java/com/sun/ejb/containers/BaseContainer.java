@@ -89,9 +89,7 @@ import com.sun.enterprise.util.Utility;
 import fish.payara.cluster.DistributedLockType;
 import fish.payara.notification.requesttracing.RequestTraceSpanLog;
 import fish.payara.nucleus.requesttracing.RequestTracingService;
-import fish.payara.opentracing.OpenTracingService;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
+import io.opentelemetry.api.trace.Span;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.ejb.AccessLocalException;
@@ -266,7 +264,6 @@ public abstract class BaseContainer implements Container, EjbContainerFacade, Ja
     protected ContainerType containerType;
 
     private final RequestTracingService requestTracingService;
-    private final OpenTracingService openTracingService;
 
     // constants for EJB(Local)Home/EJB(Local)Object methods,
     // used in authorizeRemoteMethod and authorizeLocalMethod
@@ -592,7 +589,6 @@ public abstract class BaseContainer implements Container, EjbContainerFacade, Ja
         this.containerType = type;
         this.securityManager = sm;
         this.requestTracingService = Globals.getDefaultHabitat().getService(RequestTracingService.class);
-        this.openTracingService = Globals.getDefaultHabitat().getService(OpenTracingService.class);
 
         try {
             this.loader = loader;
@@ -4095,25 +4091,15 @@ public abstract class BaseContainer implements Container, EjbContainerFacade, Ja
     }
 
     private void addEjbMethodTraceLog(CallFlowInfo info, boolean callEnter) {
-        if (openTracingService.isEnabled()) {
-            Tracer tracer = openTracingService.getTracer(openTracingService.getApplicationName(invocationManager));
+        if (requestTracingService != null && requestTracingService.isRequestTracingEnabled()) {
             RequestTraceSpanLog spanLog = constructEjbMethodSpanLog(info, callEnter);
 
-            if (tracer != null) {
-                Span span = tracer.activeSpan();
-
-                if (span != null) {
-                    span.log(spanLog.getTimeMillis(), spanLog.getLogEntries());
-                } else {
-                    // Traces started in the pre-OpenTracing style won't have an active span, so just attempt to add as
-                    // is to thread local trace if there is one
-                    requestTracingService.addSpanLog(spanLog);
-                }
-            } else {
-                // If we couldn't get a tracer here, it's because we couldn't get a name from the invocation manager.
-                // In such a case, just try to add the span log to the currently active thread local request trace
-                requestTracingService.addSpanLog(spanLog);
+            Span span = Span.current();
+            if (span != null && span.isRecording()) {
+                span.addEvent(callEnter ? "enterEjbMethod" : "exitEjbMethod");
             }
+
+            requestTracingService.addSpanLog(spanLog);
         }
     }
 

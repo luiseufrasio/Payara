@@ -66,6 +66,5 @@
         <module>ejb-http-remoting</module>
         <module>ejb-connector-l10n</module>
         <module>ejb-container-l10n</module>
-        <module>ejb-opentracing</module>
     </modules>
 </project>

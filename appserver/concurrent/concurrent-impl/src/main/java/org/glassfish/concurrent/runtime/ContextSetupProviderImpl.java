@@ -70,9 +70,11 @@ import java.util.logging.Logger;
 
 import fish.payara.nucleus.requesttracing.RequestTracingService;
 import fish.payara.nucleus.healthcheck.stuck.StuckThreadsStore;
-import fish.payara.opentracing.OpenTracingService;
-import io.opentracing.Tracer;
-import io.opentracing.Tracer.SpanBuilder;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import fish.payara.opentracing.OpenTelemetryService;
 import jakarta.enterprise.concurrent.ContextServiceDefinition;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,7 +85,7 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+
 
 import org.glassfish.internal.api.Globals;
 import org.glassfish.internal.data.ApplicationRegistry;
@@ -121,7 +123,7 @@ public class ContextSetupProviderImpl implements ContextSetupProvider {
     private final Set<String> allRemaining;
 
     private transient RequestTracingService requestTracing;
-    private transient OpenTracingService openTracing;
+    private transient OpenTelemetryService openTelemetry;
     private transient StuckThreadsStore stuckThreads;
 
     public ContextSetupProviderImpl(InvocationManager invocationManager,
@@ -329,36 +331,35 @@ public class ContextSetupProviderImpl implements ContextSetupProvider {
     }
 
     private void startConcurrentContextSpan(ComponentInvocation invocation, InvocationContext handle) {
-        Tracer tracer = openTracing.getTracer(openTracing.getApplicationName(
-                Globals.getDefaultBaseServiceLocator().getService(InvocationManager.class)));
+        if (openTelemetry == null) {
+            return;
+        }
+        Tracer tracer = openTelemetry.getCurrentTracer();
 
         // Start a trace in the request tracing system
-        SpanBuilder builder = tracer.buildSpan("executeConcurrentContext");
+        SpanBuilder builder = tracer.spanBuilder("executeConcurrentContext");
 
-        // Check for propagated span
-        if (handle.getParentTraceContext() != null) {
-            builder.asChildOf(handle.getParentTraceContext());
-
-            // Check for the presence of a propagated parent operation name
-            StreamSupport.stream(handle.getParentTraceContext().baggageItems().spliterator(), false)
-                    .filter(e -> "operation.name".equals(e.getKey()))
-                    .forEach(e -> builder.withTag("Parent Operation Name", e.getValue()));
+        // Check for propagated context
+        Context parentContext = handle.getParentTraceContext();
+        if (parentContext != null) {
+            builder.setParent(parentContext);
         }
 
         if (invocation != null) {
-            builder.withTag("App Name", invocation.getAppName())
-                    .withTag("Component ID", invocation.getComponentId())
-                    .withTag("Module Name", invocation.getModuleName());
+            builder.setAttribute("App Name", invocation.getAppName())
+                    .setAttribute("Component ID", invocation.getComponentId())
+                    .setAttribute("Module Name", invocation.getModuleName());
 
             Object instance = invocation.getInstance();
             if (instance != null) {
-                builder.withTag("Class Name", instance.getClass().getName());
+                builder.setAttribute("Class Name", instance.getClass().getName());
             }
         }
 
-        builder.withTag("Thread Name", Thread.currentThread().getName());
+        builder.setAttribute("Thread Name", Thread.currentThread().getName());
 
-        tracer.activateSpan(builder.start());
+        Span span = builder.startSpan();
+        span.makeCurrent();
     }
 
     @Override
@@ -564,9 +565,9 @@ public class ContextSetupProviderImpl implements ContextSetupProvider {
                     + "during initialisation of Concurrent Context - NullPointerException", ex);
         }
         try {
-            this.openTracing = Globals.getDefaultHabitat().getService(OpenTracingService.class);
+            this.openTelemetry = Globals.getDefaultHabitat().getService(OpenTelemetryService.class);
         } catch (NullPointerException ex) {
-            logger.log(Level.INFO, "Error retrieving OpenTracing service "
+            logger.log(Level.INFO, "Error retrieving OpenTelemetry service "
                     + "during initialisation of Concurrent Context - NullPointerException", ex);
         }
 

@@ -61,9 +61,9 @@ package org.apache.catalina.core;
 
 import fish.payara.notification.requesttracing.RequestTraceSpan;
 import fish.payara.nucleus.requesttracing.RequestTracingService;
-import fish.payara.opentracing.OpenTracingService;
-import io.opentracing.Tracer;
-import io.opentracing.tag.Tags;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.semconv.HttpAttributes;
 import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
@@ -84,7 +84,7 @@ import org.apache.catalina.Wrapper;
 import org.apache.catalina.security.SecurityUtil;
 import org.apache.catalina.util.Enumerator;
 import org.apache.catalina.util.InstanceSupport;
-import org.glassfish.api.invocation.InvocationManager;
+
 import org.glassfish.internal.api.Globals;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.glassfish.web.valve.GlassFishValve;
@@ -148,7 +148,6 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private static final String[] DEFAULT_SERVLET_METHODS = { "GET", "HEAD", "POST" };
 
     private final RequestTracingService requestTracing;
-    private final OpenTracingService openTracing;
     private static final ThreadLocal<Boolean> isInSuppressFFNFThread = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
@@ -335,7 +334,6 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         swValve = new StandardWrapperValve();
         pipeline.setBasic(swValve);
         requestTracing = getDefaultHabitat().getService(RequestTracingService.class);
-        openTracing = getDefaultHabitat().getService(OpenTracingService.class);
 
         // suppress PWC6117 file not found errors
         Logger jspLog = Logger.getLogger("org.glassfish.wasp.servlet.JspServlet");
@@ -1554,18 +1552,16 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                         servlet.service((HttpServletRequest) request, (HttpServletResponse) response);
                     }
                     finally {
-                        String applicationName = openTracing.getApplicationName(
-                                Globals.getDefaultBaseServiceLocator().getService(InvocationManager.class));
-
-                        Tracer tracer = openTracing.getTracer(applicationName);
-                        if (tracer != null && tracer.activeSpan() != null && response.isCommitted()) {
+                        Span currentSpan = Span.current();
+                        if (currentSpan != null && currentSpan.isRecording() && response.isCommitted()) {
                             // If response is not committed, it is likely async
-                            tracer.activeSpan().setTag(
-                                    Tags.HTTP_STATUS.getKey(),
-                                    ((HttpServletResponse) response).getStatus());
-                            tracer.activeSpan().finish();
+                            int status = ((HttpServletResponse) response).getStatus();
+                            currentSpan.setAttribute(HttpAttributes.HTTP_RESPONSE_STATUS_CODE, (long) status);
+                            if (status >= 500) {
+                                currentSpan.setStatus(StatusCode.ERROR);
+                            }
+                            currentSpan.end();
                         }
-                        // TODO: clear OpenTelemetry context once we move to natively using it.
 
                         if (requestTracing.isRequestTracingEnabled() && span != null) {
                             span.addSpanTag("ResponseStatus", Integer.toString(

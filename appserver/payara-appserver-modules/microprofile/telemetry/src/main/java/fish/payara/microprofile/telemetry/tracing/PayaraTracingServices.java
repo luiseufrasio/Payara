@@ -58,7 +58,6 @@ import org.glassfish.internal.api.Globals;
 import org.glassfish.internal.deployment.Deployment;
 
 import fish.payara.nucleus.requesttracing.RequestTracingService;
-import fish.payara.opentracing.OpenTracingService;
 
 /**
  * This is a class hiding internal mechanism of lookup of HK2 services. The
@@ -121,10 +120,9 @@ public final class PayaraTracingServices {
     }
 
     private final RequestTracingService requestTracingService;
-    private final OpenTracingService openTracingService;
 
     private final Deployment deployment;
-    
+
     private final OpenTelemetryService openTelemetryService;
 
     /**
@@ -136,7 +134,6 @@ public final class PayaraTracingServices {
         final ServiceLocator baseServiceLocator = Globals.getStaticBaseServiceLocator();
 
         requestTracingService = getFromServiceHandle(baseServiceLocator, RequestTracingService.class);
-        openTracingService = getFromServiceHandle(baseServiceLocator, OpenTracingService.class);
         deployment = getFromServiceHandle(baseServiceLocator, Deployment.class);
         openTelemetryService = getFromServiceHandle(baseServiceLocator, OpenTelemetryService.class);
     }
@@ -147,7 +144,6 @@ public final class PayaraTracingServices {
      */
     public boolean isTracingAvailable() {
         return requestTracingService != null
-                && openTracingService != null
                 && openTelemetryService != null;
     }
 
@@ -163,7 +159,7 @@ public final class PayaraTracingServices {
     }
 
     /**
-     * @return {@link OpenTracingService}, or null if the HK2 service couldn't be
+     * @return {@link OpenTelemetryService}, or null if the HK2 service couldn't be
      *         initialised.
      */
     public OpenTelemetryService getOpenTelemetryService() {
