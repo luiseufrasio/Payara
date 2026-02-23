@@ -638,6 +638,11 @@
                         <testExcludes>
                             <testExclude>**/.ade_path/**</testExclude>
                         </testExcludes>
+                        <!-- Required for JDK 21+: annotation processing must be explicitly enabled.
+                             Without this, processors declared as regular dependencies (not in
+                             annotationProcessorPaths) are silently skipped, causing missing
+                             generated resources (e.g. LogMessages.properties) at runtime. -->
+                        <proc>full</proc>
                     </configuration>
                 </plugin>
                 <plugin>
