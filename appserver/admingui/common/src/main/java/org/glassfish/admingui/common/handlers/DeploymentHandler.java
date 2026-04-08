@@ -255,6 +255,7 @@ public class DeploymentHandler {
              payload.put("verify", deployMap.get("verify"));
              payload.put("precompilejsp", deployMap.get("precompilejsp"));
              payload.put("availabilityEnabled", deployMap.get("availabilityEnabled"));
+             payload.put("warlibs", deployMap.get("warlibs"));
              if ("osgi".equals(deployMap.get("type"))){
                  payload.put("type", "osgi");
              }
