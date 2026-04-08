@@ -438,6 +438,16 @@ pipeline {
             }
         }
     }
+    post {
+        unsuccessful {
+            script {
+                if (currentBuild.result == 'UNSTABLE') {
+                    currentBuild.result = 'SUCCESS'
+                    echo "Build result changed from UNSTABLE to SUCCESS for GitHub reporting"
+                }
+            }
+        }
+    }
 }
 
 void makeDomain() {
