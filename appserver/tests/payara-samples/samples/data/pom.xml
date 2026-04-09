@@ -51,7 +51,7 @@
 
   <artifactId>data</artifactId>
   <name>Payara Samples - Data (Arquillian/H2)</name>
-  <packaging>jar</packaging>
+  <packaging>war</packaging>
 
   <properties>
     <junit.jupiter.version>6.0.3</junit.jupiter.version>
