@@ -181,17 +181,17 @@ public class DynamicInterfaceDataProducer<T> implements Producer<T>, ProducerFac
     }
 
     private void processQueriesForEntity() {
-        logger.fine("Processing query for entity class: " + repository);
+        logger.finer("Processing query for entity class: " + repository);
         //get entity type
         Class<?> declaredEntityClass = getEntityTypeFromGenerics(this.repository);
         // If entity type is not declared via generics, infer it from lifecycle method parameters
         if (declaredEntityClass == null) {
             declaredEntityClass = inferEntityTypeFromLifecycleMethods(this.repository);
         }
-        logger.fine("Processing entity class " + (declaredEntityClass != null ? declaredEntityClass.getName() : "null"));
+        logger.finer("Processing entity class " + (declaredEntityClass != null ? declaredEntityClass.getName() : "null"));
         try (EntityManager entityManager = getEntityManagerSupplier(this.jakartaDataExtension.getApplicationName(), this.dataStore).get()) {
             for (Method method : this.repository.getMethods()) {
-                logger.fine("Processing query for " + (declaredEntityClass != null ? declaredEntityClass.getName() : "null") + "." + method.getName());
+                logger.finer("Processing query for " + (declaredEntityClass != null ? declaredEntityClass.getName() : "null") + "." + method.getName());
                 //skip if method is default
                 if (method.isDefault()) {
                     continue;
