@@ -58,7 +58,6 @@
         <module>gf-jpa-connector</module>
         <module>jpa-container</module>
         <module>eclipselink-wrapper</module>
-        <module>entitybean-container</module>
         <module>jpa-container-l10n</module>
     </modules>
 </project>
