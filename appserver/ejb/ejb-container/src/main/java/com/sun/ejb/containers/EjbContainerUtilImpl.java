@@ -456,7 +456,7 @@ public class EjbContainerUtilImpl
 
     @Override
     public boolean isEJBLite() {
-        return (!env.isMicro());
+        return env.isMicro();
     }
 
     @Override
