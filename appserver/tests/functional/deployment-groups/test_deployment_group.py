@@ -131,10 +131,32 @@ class AsadminRunner:
                 line = line.strip()
                 if instance_name in line and "running" in line.lower():
                     logger.info(f"Instance {instance_name} is running")
-                    return True
+                    # Additional check: verify HTTP port is actually listening
+                    http_port = self.get_instance_http_port(instance_name)
+                    if http_port:
+                        if self._is_port_listening("localhost", http_port):
+                            logger.info(f"Instance {instance_name} HTTP port {http_port} is listening")
+                            return True
+                        else:
+                            logger.debug(f"Instance {instance_name} running but HTTP port {http_port} not yet listening")
+                    else:
+                        logger.debug(f"Instance {instance_name} running but HTTP port not yet configured")
+                    break
             time.sleep(2)
         logger.warning(f"Instance {instance_name} did not start within {timeout}s")
         return False
+
+    def _is_port_listening(self, host: str, port: str, timeout: int = 2) -> bool:
+        """Check if a port is accepting TCP connections."""
+        import socket
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            result = sock.connect_ex((host, int(port)))
+            sock.close()
+            return result == 0
+        except (socket.error, ValueError):
+            return False
 
     def wait_for_instance_stop(self, instance_name: str, timeout: int = 60) -> bool:
         """Wait for an instance to be stopped."""
@@ -310,6 +332,10 @@ def deployment_group_env(asadmin, http_port_base):
             ),
             inst,
         )
+        # Add delay between instance creation to avoid resource conflicts
+        if idx < len(instance_names) - 1:
+            logger.info("Waiting before creating next instance")
+            time.sleep(2)
 
     # 2. Create the deployment group
     logger.info(f"Creating deployment group: {dg_name}")
@@ -379,7 +405,9 @@ def deployment_group_env(asadmin, http_port_base):
     # Wait for instances to stop before deleting
     logger.info("Waiting for instances to stop")
     for inst in instance_names:
-        asadmin.wait_for_instance_stop(inst, timeout=60)
+        if not asadmin.wait_for_instance_stop(inst, timeout=60):
+            logger.warning(f"Instance {inst} did not stop gracefully, attempting force stop")
+            asadmin.run_no_raise("stop-instance", "--force", inst)
 
     for inst in instance_names:
         logger.info(f"Removing instance {inst} from deployment group {dg_name}")
@@ -418,7 +446,7 @@ class TestDeploymentGroupDeployment:
 
         # Wait for application to deploy on all instances
         logger.info("Waiting for application to deploy on all instances")
-        time.sleep(10)
+        time.sleep(30)
 
         try:
             for inst in instances:
