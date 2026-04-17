@@ -401,6 +401,12 @@ pipeline {
                         setupDomain()
                         sh """python3 appserver/tests/functional/asadmin/run_all_tests.py \
                         --asadmin ${pwd()}/payara7/bin/asadmin"""
+
+                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
+                        sh """pip install -r appserver/tests/functional/deployment-groups/requirements.txt"""
+                        sh """export PAYARA_HOME=${pwd()}/payara7 && pytest appserver/tests/functional/deployment-groups/test_deployment_group.py -v -s"""
+                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
+
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran test  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
                     }
                     post {
