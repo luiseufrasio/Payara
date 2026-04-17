@@ -121,6 +121,21 @@ class AsadminRunner:
                 nodes.append(parts[0])
         return nodes
 
+    def wait_for_instance_start(self, instance_name: str, timeout: int = 60) -> bool:
+        """Wait for an instance to be in running state."""
+        logger.info(f"Waiting for instance {instance_name} to start (timeout: {timeout}s)")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            result = self.run_no_raise("list-instances")
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if instance_name in line and "running" in line.lower():
+                    logger.info(f"Instance {instance_name} is running")
+                    return True
+            time.sleep(2)
+        logger.warning(f"Instance {instance_name} did not start within {timeout}s")
+        return False
+
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 30) -> bool:
     """
@@ -223,7 +238,7 @@ def deployment_group_env(asadmin, http_port_base):
         # No nodes exist, create a local node
         logger.info("No nodes found, creating a local node")
         node_name = f"localhost-{unique_id}"
-        asadmin.run("create-local-instance", "--node", node_name)
+        asadmin.run("create-node-config", node_name)
         logger.info(f"Created local node: {node_name}")
         node_created = True
     else:
@@ -294,6 +309,16 @@ def deployment_group_env(asadmin, http_port_base):
     logger.info(f"Starting deployment group: {dg_name}")
     asadmin.run("start-deployment-group", dg_name)
 
+    # 5. Wait for all instances to be running
+    logger.info("Waiting for instances to start")
+    for inst in instance_names:
+        if not asadmin.wait_for_instance_start(inst, timeout=120):
+            logger.error(f"Instance {inst} failed to start")
+            # Get instance status for debugging
+            result = asadmin.run_no_raise("list-instances")
+            logger.error(f"Current instance status: {result.stdout}")
+            raise RuntimeError(f"Instance {inst} failed to start")
+
     logger.info(f"Deployment group environment setup complete: {dg_name}")
 
     yield {
@@ -343,7 +368,7 @@ def deployment_group_env(asadmin, http_port_base):
     # Delete the node if we created it
     if node_created:
         logger.info(f"Deleting node: {node_name}")
-        asadmin.run_no_raise("delete-node", node_name)
+        asadmin.run_no_raise("delete-node-config", node_name)
 
     logger.info(f"Deployment group environment teardown complete: {dg_name}")
 
