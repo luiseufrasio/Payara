@@ -156,18 +156,6 @@ def payara_domain():
     logger.info("Checking JDK version")
     java_result = subprocess.run(["java", "-version"], capture_output=True, text=True)
     logger.info(f"JDK version: {java_result.stderr.strip()}")
-    
-    # Start the domain
-    try:
-        logger.info("Starting Payara domain")
-        asadmin.run("start-domain")
-        logger.info("Payara domain started successfully")
-        yield
-    finally:
-        # Stop the domain
-        logger.info("Stopping Payara domain")
-        asadmin.run_no_raise("stop-domain")
-        logger.info("Payara domain stopped")
 
 
 @pytest.fixture(scope="module")
