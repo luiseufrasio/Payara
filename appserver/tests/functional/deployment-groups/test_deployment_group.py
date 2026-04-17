@@ -136,6 +136,25 @@ class AsadminRunner:
         logger.warning(f"Instance {instance_name} did not start within {timeout}s")
         return False
 
+    def wait_for_instance_stop(self, instance_name: str, timeout: int = 60) -> bool:
+        """Wait for an instance to be stopped."""
+        logger.info(f"Waiting for instance {instance_name} to stop (timeout: {timeout}s)")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            result = self.run_no_raise("list-instances")
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if instance_name in line and "running" in line.lower():
+                    logger.debug(f"Instance {instance_name} still running")
+                    break
+            else:
+                # Instance not found in list or not running
+                logger.info(f"Instance {instance_name} is stopped")
+                return True
+            time.sleep(2)
+        logger.warning(f"Instance {instance_name} did not stop within {timeout}s")
+        return False
+
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 30) -> bool:
     """
@@ -309,6 +328,9 @@ def deployment_group_env(asadmin, http_port_base):
     logger.info(f"Starting deployment group: {dg_name}")
     asadmin.run("start-deployment-group", dg_name)
 
+    # Give instances time to stabilize before checking status
+    time.sleep(5)
+
     # 5. Wait for all instances to be running
     logger.info("Waiting for instances to start")
     for inst in instance_names:
@@ -354,6 +376,11 @@ def deployment_group_env(asadmin, http_port_base):
     logger.info(f"Stopping deployment group: {dg_name}")
     asadmin.run_no_raise("stop-deployment-group", dg_name)
 
+    # Wait for instances to stop before deleting
+    logger.info("Waiting for instances to stop")
+    for inst in instance_names:
+        asadmin.wait_for_instance_stop(inst, timeout=60)
+
     for inst in instance_names:
         logger.info(f"Removing instance {inst} from deployment group {dg_name}")
         asadmin.run_no_raise("remove-instance-from-deployment-group",
@@ -388,6 +415,10 @@ class TestDeploymentGroupDeployment:
         app_name = "clusterjsp-dg-deploy-test"
 
         asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", test_war)
+
+        # Wait for application to deploy on all instances
+        logger.info("Waiting for application to deploy on all instances")
+        time.sleep(10)
 
         try:
             for inst in instances:
