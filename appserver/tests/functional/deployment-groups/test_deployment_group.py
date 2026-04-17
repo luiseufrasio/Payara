@@ -141,7 +141,7 @@ def check_http_app_available(host: str, port: str, app_name: str, timeout: int =
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def payara_domain():
     """
     Start the Payara domain before all tests and stop it after.
