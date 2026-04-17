@@ -107,6 +107,20 @@ class AsadminRunner:
                 return m.group(1)
         return None
 
+    def get_available_nodes(self) -> list[str]:
+        """Get list of available nodes."""
+        result = self.run_no_raise("list-nodes")
+        nodes = []
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            # Skip header lines and empty lines
+            if not line or line.startswith("Node") or line.startswith("Command"):
+                continue
+            parts = line.split()
+            if parts:
+                nodes.append(parts[0])
+        return nodes
+
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 30) -> bool:
     """
@@ -189,18 +203,34 @@ def deployment_group_env(asadmin, http_port_base):
     Yielded dict keys:
         dg_name       – deployment group name
         instances     – list of instance names
-        node_name     – "localhost-domain1" (default local node)
+        node_name     – name of the node used (created or existing)
     """
     # Use unique names to avoid conflicts from previous test runs
     unique_id = str(uuid.uuid4())[:8]
     dg_name = f"test-dg-{unique_id}"
     instance_names = [f"test-dg-inst1-{unique_id}", f"test-dg-inst2-{unique_id}"]
-    node_name = "localhost-domain1"
 
     logger.info(f"Setting up deployment group environment: {dg_name}")
 
     # --- Pre-setup cleanup (handle stale resources from previous runs) ---
     logger.info("Checking for and cleaning up any existing resources from previous runs")
+
+    # Get or create a node
+    available_nodes = asadmin.get_available_nodes()
+    logger.info(f"Available nodes: {available_nodes}")
+
+    if not available_nodes:
+        # No nodes exist, create a local node
+        logger.info("No nodes found, creating a local node")
+        node_name = f"localhost-{unique_id}"
+        asadmin.run("create-local-instance", "--node", node_name)
+        logger.info(f"Created local node: {node_name}")
+        node_created = True
+    else:
+        # Use the first available node
+        node_name = available_nodes[0]
+        logger.info(f"Using existing node: {node_name}")
+        node_created = False
 
     # Clean up any test applications at domain level
     logger.info("Cleaning up test applications from domain level")
@@ -309,6 +339,12 @@ def deployment_group_env(asadmin, http_port_base):
 
     logger.info(f"Deleting deployment group: {dg_name}")
     asadmin.run_no_raise("delete-deployment-group", dg_name)
+
+    # Delete the node if we created it
+    if node_created:
+        logger.info(f"Deleting node: {node_name}")
+        asadmin.run_no_raise("delete-node", node_name)
+
     logger.info(f"Deployment group environment teardown complete: {dg_name}")
 
 # ---------------------------------------------------------------------------
