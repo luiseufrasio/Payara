@@ -195,7 +195,7 @@ def deployment_group_env(asadmin, http_port_base):
     unique_id = str(uuid.uuid4())[:8]
     dg_name = f"test-dg-{unique_id}"
     instance_names = [f"test-dg-inst1-{unique_id}", f"test-dg-inst2-{unique_id}"]
-    node_name = "localhost-domain1"
+    node_name = "localhost-test-domain"
 
     logger.info(f"Setting up deployment group environment: {dg_name}")
 
