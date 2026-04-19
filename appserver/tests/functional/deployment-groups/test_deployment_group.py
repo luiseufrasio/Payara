@@ -6,8 +6,6 @@ deployed to every instance in that group, and that redeployment also
 propagates to all instances.
 
 The test suite automatically:
-- Starts the Payara domain before all tests
-- Stops the Payara domain after all tests complete
 - Logs all operations with detailed output
 - Uses clusterjsp.war from the test-apps folder
 
@@ -43,6 +41,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+_PORT_OFFSET = 0
 
 class AsadminRunner:
     """Thin wrapper around asadmin subprocess calls."""
@@ -108,34 +108,38 @@ class AsadminRunner:
         return None
 
 
-def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 30) -> bool:
+def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 60) -> bool:
     """
-    Check if the application is available via HTTP.
+    Check if the application is available via HTTP, with retries.
     
     Args:
         host: Hostname or IP address
         port: HTTP port number
         app_name: Name of the application
-        timeout: Timeout in seconds for the HTTP request
+        timeout: Timeout in seconds for the HTTP request to succeed
     
     Returns:
         True if the application responds with HTTP 200, False otherwise
     """
     url = f"http://{host}:{port}/{app_name}"
-    logger.info(f"Checking HTTP availability: {url}")
+    logger.info(f"Checking HTTP availability: {url} (up to {timeout}s)")
 
-    try:
-        response = requests.get(url, timeout=timeout)
-        logger.info(f"HTTP response status: {response.status_code}")
-        if response.status_code == 200:
-            logger.info(f"✓ Application '{app_name}' is accessible via HTTP at {url}")
-            return True
-        else:
-            logger.warning(f"Application '{app_name}' returned status {response.status_code}")
-            return False
-    except requests.exceptions.RequestException as e:
-        logger.error(f"HTTP request failed for {url}: {e}")
-        return False
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                logger.info(f"✓ Application '{app_name}' is accessible via HTTP at {url}")
+                return True
+            else:
+                logger.debug(f"Application '{app_name}' returned status {response.status_code}, retrying...")
+        except requests.exceptions.RequestException as e:
+            logger.debug(f"HTTP request failed for {url}: {e}")
+        
+        time.sleep(1)
+        
+    logger.error(f"Timed out waiting for HTTP availability at {url}")
+    return False
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -229,11 +233,12 @@ def deployment_group_env(asadmin, http_port_base):
         asadmin.run_no_raise("delete-instance", inst)
 
     # --- Setup -----------------------------------------------------------
+    global _PORT_OFFSET
     # 1. Create standalone instances with unique HTTP ports
     for idx, inst in enumerate(instance_names):
-        http_port = http_port_base + idx
-        https_port = http_port_base + idx + 100
-        admin_port_offset = http_port_base + idx + 200
+        http_port = http_port_base + _PORT_OFFSET + idx
+        https_port = http_port_base + _PORT_OFFSET + idx + 100
+        admin_port_offset = http_port_base + _PORT_OFFSET + idx + 200
         logger.info(f"Creating instance: {inst} with HTTP port {http_port}")
         asadmin.run(
             "create-instance",
@@ -246,6 +251,7 @@ def deployment_group_env(asadmin, http_port_base):
             ),
             inst,
         )
+    _PORT_OFFSET += 10
 
     # 2. Create the deployment group
     logger.info(f"Creating deployment group: {dg_name}")
