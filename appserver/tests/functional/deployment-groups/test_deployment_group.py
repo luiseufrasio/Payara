@@ -93,8 +93,10 @@ class AsadminRunner:
                 apps.append(parts[0])
         return apps
 
-    def get_instance_http_port(self, instance_name: str) -> str | None:
-        """Get the HTTP listener port for the given instance via get command."""
+    def get_instance_http_port(self, instance_name: str, instance_ports: dict = None) -> str | None:
+        """Get the HTTP listener port for the given instance via get command or from mapping."""
+        if instance_ports and instance_name in instance_ports:
+            return str(instance_ports[instance_name])
         result = self.run_no_raise(
             "get",
             f"servers.server.{instance_name}.system-property.HTTP_LISTENER_PORT.value",
@@ -103,8 +105,7 @@ class AsadminRunner:
             m = re.search(r"=\s*(\d+)", line)
             if m:
                 return m.group(1)
-        logger.info(f"HTTP_LISTENER_PORT system property not set for {instance_name}, using default 8080")
-        return "8080"
+        return None
 
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 60) -> bool:
@@ -192,6 +193,8 @@ def deployment_group_env(asadmin):
     dg_name = "test-dg"
     node_name = "localhost-test-domain"
     instance_names = ["test-inst1", "test-inst2"]
+    # Use fixed ports to ensure HTTP accessibility
+    instance_ports = {"test-inst1": 28080, "test-inst2": 28081}
 
     logger.info(f"Setting up deployment group environment: {dg_name}")
 
@@ -217,12 +220,13 @@ def deployment_group_env(asadmin):
     asadmin.run_no_raise("delete-deployment-group", dg_name)
 
     # --- Setup -----------------------------------------------------------
-    # 1. Create standalone instances with Payara default ports and hardcoded names
+    # 1. Create standalone instances with explicit HTTP ports
     for inst in instance_names:
-        logger.info(f"Creating instance: {inst}")
+        logger.info(f"Creating instance: {inst} with HTTP port {instance_ports[inst]}")
         asadmin.run(
             "create-instance",
             f"--node={node_name}",
+            f"--systemproperties=HTTP_LISTENER_PORT={instance_ports[inst]}",
             inst,
         )
 
@@ -251,6 +255,7 @@ def deployment_group_env(asadmin):
     yield {
         "dg_name": dg_name,
         "instances": instance_names,
+        "instance_ports": instance_ports,
         "node_name": node_name,
     }
 
@@ -306,9 +311,14 @@ class TestDeploymentGroupDeployment:
         """Deploying to a deployment group should make the app visible on all instances."""
         dg = deployment_group_env["dg_name"]
         instances = deployment_group_env["instances"]
+        instance_ports = deployment_group_env["instance_ports"]
         app_name = "clusterjsp-dg-deploy-test"
 
-        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", test_war)
+        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", f"--contextroot={app_name}", test_war)
+
+        # Wait for application to start on instances
+        logger.info("Waiting for application to start on instances...")
+        time.sleep(10)
 
         try:
             for inst in instances:
@@ -317,7 +327,7 @@ class TestDeploymentGroupDeployment:
                     f"Application '{app_name}' not found on instance '{inst}'. Apps: {apps}"
                 )
                 
-                http_port = asadmin.get_instance_http_port(inst)
+                http_port = asadmin.get_instance_http_port(inst, instance_ports)
                 assert http_port is not None, f"Could not get HTTP port for '{inst}'"
                 assert check_http_app_available("localhost", http_port, app_name), (
                     f"App '{app_name}' not accessible via HTTP on '{inst}'"
@@ -330,9 +340,14 @@ class TestDeploymentGroupDeployment:
     ):
         """list-applications on the deployment group should return the deployed app."""
         dg = deployment_group_env["dg_name"]
+        instance_ports = deployment_group_env["instance_ports"]
         app_name = "clusterjsp-dg-list-test"
 
-        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", test_war)
+        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", f"--contextroot={app_name}", test_war)
+
+        # Wait for application to start on instances
+        logger.info("Waiting for application to start on instances...")
+        time.sleep(10)
 
         try:
             apps = asadmin.list_applications_on_instance(dg)
@@ -341,7 +356,7 @@ class TestDeploymentGroupDeployment:
             )
             
             inst = deployment_group_env["instances"][0]
-            http_port = asadmin.get_instance_http_port(inst)
+            http_port = asadmin.get_instance_http_port(inst, instance_ports)
             assert http_port is not None, f"Could not get HTTP port for '{inst}'"
             assert check_http_app_available("localhost", http_port, app_name), (
                 f"App '{app_name}' not accessible via HTTP on '{inst}'"
@@ -355,12 +370,17 @@ class TestDeploymentGroupDeployment:
         """Undeploying from a deployment group should remove the app from all instances."""
         dg = deployment_group_env["dg_name"]
         instances = deployment_group_env["instances"]
+        instance_ports = deployment_group_env["instance_ports"]
         app_name = "clusterjsp-dg-undeploy-test"
 
-        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", test_war)
+        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", f"--contextroot={app_name}", test_war)
+        
+        # Wait for application to start on instances
+        logger.info("Waiting for application to start on instances...")
+        time.sleep(10)
         
         inst = instances[0]
-        http_port = asadmin.get_instance_http_port(inst)
+        http_port = asadmin.get_instance_http_port(inst, instance_ports)
         assert http_port is not None, f"Could not get HTTP port for '{inst}'"
         assert check_http_app_available("localhost", http_port, app_name), (
             f"App '{app_name}' not accessible before undeploy"
@@ -380,14 +400,19 @@ class TestDeploymentGroupDeployment:
         """Redeploying an app to a deployment group should propagate to all instances."""
         dg = deployment_group_env["dg_name"]
         instances = deployment_group_env["instances"]
+        instance_ports = deployment_group_env["instance_ports"]
         app_name = "clusterjsp-dg-redeploy-test"
 
         # Initial deployment
-        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", test_war)
+        asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", f"--contextroot={app_name}", test_war)
+
+        # Wait for application to start on instances
+        logger.info("Waiting for application to start on instances...")
+        time.sleep(10)
 
         try:
             # Redeploy the same app with force flag
-            asadmin.run("deploy", "--force=true", f"--target={dg}", f"--name={app_name}", test_war)
+            asadmin.run("deploy", "--force=true", f"--target={dg}", f"--name={app_name}", f"--contextroot={app_name}", test_war)
 
             # Verify redeployment propagated to all instances
             for inst in instances:
@@ -396,7 +421,7 @@ class TestDeploymentGroupDeployment:
                     f"App '{app_name}' not found on instance '{inst}' after redeploy. Apps: {apps}"
                 )
 
-                http_port = asadmin.get_instance_http_port(inst)
+                http_port = asadmin.get_instance_http_port(inst, instance_ports)
                 assert http_port is not None, f"Could not get HTTP port for '{inst}'"
                 assert check_http_app_available("localhost", http_port, app_name), (
                     f"App '{app_name}' not accessible via HTTP on '{inst}' after redeploy"
