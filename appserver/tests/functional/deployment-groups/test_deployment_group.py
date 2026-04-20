@@ -43,8 +43,6 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
-_PORT_OFFSET = 0
-
 class AsadminRunner:
     """Thin wrapper around asadmin subprocess calls."""
 
@@ -107,6 +105,34 @@ class AsadminRunner:
             if m:
                 return m.group(1)
         return None
+
+
+def find_free_port(start_port: int = 20000, max_attempts: int = 1000, exclude_ports: list[int] = None) -> int:
+    """
+    Find a free port by checking if it's available.
+    
+    Args:
+        start_port: Starting port number to check from
+        max_attempts: Maximum number of ports to try
+        exclude_ports: List of ports to skip even if available
+    
+    Returns:
+        A free port number
+    """
+    if exclude_ports is None:
+        exclude_ports = []
+    
+    for port in range(start_port, start_port + max_attempts):
+        if port in exclude_ports:
+            continue
+        try:
+            with socket.create_connection(("localhost", port), timeout=1):
+                # Port is in use, try next
+                continue
+        except (ConnectionRefusedError, socket.timeout, OSError):
+            # Port is available
+            return port
+    raise RuntimeError(f"Could not find a free port in range {start_port}-{start_port + max_attempts}")
 
 
 def check_port_open(host: str, port: str, timeout: int = 120) -> bool:
@@ -199,11 +225,6 @@ def asadmin() -> AsadminRunner:
 
 
 @pytest.fixture(scope="module")
-def http_port_base(request) -> int:
-    return int(request.config.getoption("--instance-http-port-base"))
-
-
-@pytest.fixture(scope="module")
 def test_war(tmp_path_factory) -> str:
     """
     Path to a test WAR file. Uses clusterjsp.war from test-apps folder.
@@ -216,7 +237,7 @@ def test_war(tmp_path_factory) -> str:
 
 
 @pytest.fixture()
-def deployment_group_env(asadmin, http_port_base):
+def deployment_group_env(asadmin):
     """
     Create a deployment group with two standalone instances, yield the
     environment dict, then clean up everything in reverse order.
@@ -264,12 +285,15 @@ def deployment_group_env(asadmin, http_port_base):
         asadmin.run_no_raise("delete-instance", inst)
 
     # --- Setup -----------------------------------------------------------
-    global _PORT_OFFSET
-    # 1. Create standalone instances with unique HTTP ports
+    # 1. Create standalone instances with random free HTTP ports
     for idx, inst in enumerate(instance_names):
-        http_port = http_port_base + _PORT_OFFSET + idx
-        https_port = http_port_base + _PORT_OFFSET + idx + 100
-        admin_port_offset = http_port_base + _PORT_OFFSET + idx + 200
+        allocated_ports = []
+        http_port = find_free_port(exclude_ports=allocated_ports)
+        allocated_ports.append(http_port)
+        https_port = find_free_port(exclude_ports=allocated_ports)
+        allocated_ports.append(https_port)
+        admin_port_offset = find_free_port(exclude_ports=allocated_ports)
+        allocated_ports.append(admin_port_offset)
         logger.info(f"Creating instance: {inst} with HTTP port {http_port}")
         asadmin.run(
             "create-instance",
@@ -282,7 +306,6 @@ def deployment_group_env(asadmin, http_port_base):
             ),
             inst,
         )
-    _PORT_OFFSET += 10
 
     # 2. Create the deployment group
     logger.info(f"Creating deployment group: {dg_name}")
