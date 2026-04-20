@@ -397,10 +397,7 @@ pipeline {
                         -Dfailsafe.rerunFailingTestsCount=2 \
                         -f appserver/tests/functional/embeddedtest """
 
-                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running asadmin tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
                         setupDomain()
-                        sh """python3 appserver/tests/functional/asadmin/run_all_tests.py \
-                        --asadmin ${pwd()}/payara7/bin/asadmin"""
 
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
                         sh """curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"""
@@ -409,7 +406,10 @@ pipeline {
                         sh """export PAYARA_HOME=${pwd()}/payara7 && $HOME/.local/bin/pytest appserver/tests/functional/deployment-groups/test_deployment_group.py -v -s"""
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
 
-                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran test  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
+                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running asadmin tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
+                        sh """python3 appserver/tests/functional/asadmin/run_all_tests.py \
+                        --asadmin ${pwd()}/payara7/bin/asadmin"""
+                        echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran asadmin test  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
                     }
                     post {
                         always {
