@@ -103,7 +103,8 @@ class AsadminRunner:
             m = re.search(r"=\s*(\d+)", line)
             if m:
                 return m.group(1)
-        return None
+        logger.info(f"HTTP_LISTENER_PORT system property not set for {instance_name}, using default 8080")
+        return "8080"
 
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 60) -> bool:
