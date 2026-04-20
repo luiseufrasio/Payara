@@ -1,8 +1,18 @@
 version: 2
+
+registries:
+  payara-nexus-staging:
+    type: maven-repository
+    url: https://nexus.dev.payara.fish/repository/payara-staging
+    username: ${{ secrets.PAYARA_NEXUS_USERNAME }}
+    password: ${{ secrets.PAYARA_NEXUS_PASSWORD }}
+    
 updates:
   # Configuration for Maven
   - package-ecosystem: "maven"
     directory: "/" # Location of package manifests
+    registries:
+      - payara-nexus-staging
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
@@ -19,12 +29,6 @@ updates:
       # Ignore major version updates for dependencies with group ID starting with fish.payara
       - dependency-name: "fish.payara.*"
         update-types: ["version-update:semver-major"]
-
-      - dependency-name: "*payara-px*"
-        update-types:
-          - "version-update:semver-major"
-          - "version-update:semver-minor"
-          - "version-update:semver-patch"
 
       # Ignore major version updates for individual dependencies within the org.eclipse.persistence group
       - dependency-name: "org.eclipse.persistence:org.eclipse.persistence.core"
