@@ -212,8 +212,8 @@ def deployment_group_env(asadmin):
         parts = line.split()
         if parts and parts[0].startswith(test_app_prefix):
             app_name = parts[0]
-            logger.info(f"Undeploying test application from domain: {app_name}")
-            asadmin.run_no_raise("undeploy", "--target=domain", app_name)
+            logger.info(f"Undeploying test application from all targets: {app_name}")
+            asadmin.run_no_raise("undeploy", app_name)
 
     # Stop and delete deployment group if it exists
     asadmin.run_no_raise("stop-deployment-group", dg_name)
