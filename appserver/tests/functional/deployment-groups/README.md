@@ -31,7 +31,7 @@ export PAYARA_HOME=/path/to/payara
 
 3. Ensure the test WAR file exists:
 ```bash
-test-apps/clusterjsp.war
+../test-apps/clusterjsp.war
 ```
 
 ## Running the Tests
@@ -53,7 +53,7 @@ The test suite automatically:
 - Starts the Payara domain before all tests
 - Stops the Payara domain after all tests complete
 - Logs all operations with detailed output
-- Uses `clusterjsp.war` from the test-apps folder
+- Uses `clusterjsp.war` from the ../test-apps folder
 
 ### Custom HTTP Port Base
 
@@ -69,7 +69,7 @@ pytest test_deployment_group.py --instance-http-port-base=28080 -v
 - Set the PAYARA_HOME environment variable to your Payara installation directory
 
 **Error: Test WAR file not found**
-- Ensure `clusterjsp.war` exists in the `test-apps/` folder
+- Ensure `clusterjsp.war` exists in the `../test-apps/` folder
 
 **HTTP requests failing**
 - Ensure instances are running and accessible on the configured ports

@@ -229,7 +229,7 @@ def test_war(tmp_path_factory) -> str:
     """
     Path to a test WAR file. Uses clusterjsp.war from test-apps folder.
     """
-    war_path = os.path.join(os.path.dirname(__file__), "test-apps", "clusterjsp.war")
+    war_path = os.path.join(os.path.dirname(__file__), "..", "test-apps", "clusterjsp.war")
     if not os.path.isfile(war_path):
         raise RuntimeError(f"Test WAR file not found: {war_path}")
     logger.info(f"Using test WAR: {war_path}")
