@@ -30,6 +30,7 @@ import pytest
 import logging
 import requests
 import uuid
+import socket
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -106,6 +107,36 @@ class AsadminRunner:
             if m:
                 return m.group(1)
         return None
+
+
+def check_port_open(host: str, port: str, timeout: int = 120) -> bool:
+    """
+    Check if a TCP port is accepting connections.
+    
+    Args:
+        host: Hostname or IP address
+        port: Port number as string
+        timeout: Timeout in seconds
+    
+    Returns:
+        True if port is open, False otherwise
+    """
+    port_int = int(port)
+    logger.info(f"Checking if port {port_int} is open on {host} (up to {timeout}s)")
+    
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection((host, port_int), timeout=2):
+                logger.info(f"✓ Port {port_int} is open on {host}")
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            logger.debug(f"Port {port_int} not yet open on {host}, retrying...")
+        
+        time.sleep(2)
+    
+    logger.error(f"Timed out waiting for port {port_int} to open on {host}")
+    return False
 
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 60) -> bool:
@@ -270,6 +301,14 @@ def deployment_group_env(asadmin, http_port_base):
     logger.info(f"Starting deployment group: {dg_name}")
     asadmin.run("start-deployment-group", dg_name)
 
+    # 5. Wait for instances to actually start and open their HTTP ports
+    logger.info("Waiting for instances to start and open HTTP ports...")
+    for inst in instance_names:
+        http_port = asadmin.get_instance_http_port(inst)
+        assert http_port is not None, f"Could not get HTTP port for '{inst}'"
+        if not check_port_open("localhost", http_port, timeout=120):
+            raise RuntimeError(f"Instance '{inst}' failed to start on HTTP port {http_port} within timeout")
+    
     logger.info(f"Deployment group environment setup complete: {dg_name}")
 
     yield {
