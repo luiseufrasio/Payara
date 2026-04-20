@@ -29,7 +29,6 @@ import time
 import pytest
 import logging
 import requests
-import uuid
 import socket
 
 logging.basicConfig(
@@ -105,64 +104,6 @@ class AsadminRunner:
             if m:
                 return m.group(1)
         return None
-
-
-def find_free_port(start_port: int = 20000, max_attempts: int = 1000, exclude_ports: list[int] = None) -> int:
-    """
-    Find a free port by checking if it's available.
-    
-    Args:
-        start_port: Starting port number to check from
-        max_attempts: Maximum number of ports to try
-        exclude_ports: List of ports to skip even if available
-    
-    Returns:
-        A free port number
-    """
-    if exclude_ports is None:
-        exclude_ports = []
-    
-    for port in range(start_port, start_port + max_attempts):
-        if port in exclude_ports:
-            continue
-        try:
-            with socket.create_connection(("localhost", port), timeout=1):
-                # Port is in use, try next
-                continue
-        except (ConnectionRefusedError, socket.timeout, OSError):
-            # Port is available
-            return port
-    raise RuntimeError(f"Could not find a free port in range {start_port}-{start_port + max_attempts}")
-
-
-def check_port_open(host: str, port: str, timeout: int = 120) -> bool:
-    """
-    Check if a TCP port is accepting connections.
-    
-    Args:
-        host: Hostname or IP address
-        port: Port number as string
-        timeout: Timeout in seconds
-    
-    Returns:
-        True if port is open, False otherwise
-    """
-    port_int = int(port)
-    logger.info(f"Checking if port {port_int} is open on {host} (up to {timeout}s)")
-    
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            with socket.create_connection((host, port_int), timeout=2):
-                logger.info(f"✓ Port {port_int} is open on {host}")
-                return True
-        except (socket.timeout, ConnectionRefusedError, OSError):
-            logger.debug(f"Port {port_int} not yet open on {host}, retrying...")
-        
-        time.sleep(2)
-    
-    logger.error(f"Timed out waiting for port {port_int} to open on {host}")
-    return False
 
 
 def check_http_app_available(host: str, port: str, app_name: str, timeout: int = 60) -> bool:
@@ -247,11 +188,9 @@ def deployment_group_env(asadmin):
         instances     – list of instance names
         node_name     – "localhost-domain1" (default local node)
     """
-    # Use unique names to avoid conflicts from previous test runs
-    unique_id = str(uuid.uuid4())[:8]
-    dg_name = f"test-dg-{unique_id}"
-    instance_names = [f"test-dg-inst1-{unique_id}", f"test-dg-inst2-{unique_id}"]
+    dg_name = "test-dg"
     node_name = "localhost-test-domain"
+    instance_names = ["test-inst1", "test-inst2"]
 
     logger.info(f"Setting up deployment group environment: {dg_name}")
 
@@ -274,36 +213,15 @@ def deployment_group_env(asadmin):
 
     # Stop and delete deployment group if it exists
     asadmin.run_no_raise("stop-deployment-group", dg_name)
-    for inst in instance_names:
-        asadmin.run_no_raise("remove-instance-from-deployment-group",
-                             f"--instance={inst}",
-                             f"--deploymentgroup={dg_name}")
     asadmin.run_no_raise("delete-deployment-group", dg_name)
 
-    # Delete instances if they exist (in case they weren't cleaned up properly)
-    for inst in instance_names:
-        asadmin.run_no_raise("delete-instance", inst)
-
     # --- Setup -----------------------------------------------------------
-    # 1. Create standalone instances with random free HTTP ports
-    for idx, inst in enumerate(instance_names):
-        allocated_ports = []
-        http_port = find_free_port(exclude_ports=allocated_ports)
-        allocated_ports.append(http_port)
-        https_port = find_free_port(exclude_ports=allocated_ports)
-        allocated_ports.append(https_port)
-        admin_port_offset = find_free_port(exclude_ports=allocated_ports)
-        allocated_ports.append(admin_port_offset)
-        logger.info(f"Creating instance: {inst} with HTTP port {http_port}")
+    # 1. Create standalone instances with Payara default ports and hardcoded names
+    for inst in instance_names:
+        logger.info(f"Creating instance: {inst}")
         asadmin.run(
             "create-instance",
             f"--node={node_name}",
-            f"--systemproperties",
-            (
-                f"HTTP_LISTENER_PORT={http_port}:"
-                f"HTTP_SSL_LISTENER_PORT={https_port}:"
-                f"ASADMIN_LISTENER_PORT={admin_port_offset}"
-            ),
             inst,
         )
 
@@ -324,13 +242,8 @@ def deployment_group_env(asadmin):
     logger.info(f"Starting deployment group: {dg_name}")
     asadmin.run("start-deployment-group", dg_name)
 
-    # 5. Wait for instances to actually start and open their HTTP ports
-    logger.info("Waiting for instances to start and open HTTP ports...")
-    for inst in instance_names:
-        http_port = asadmin.get_instance_http_port(inst)
-        assert http_port is not None, f"Could not get HTTP port for '{inst}'"
-        if not check_port_open("localhost", http_port, timeout=120):
-            raise RuntimeError(f"Instance '{inst}' failed to start on HTTP port {http_port} within timeout")
+    # 5. Wait for instances to actually start
+    logger.info("Waiting for instances to start...")
     
     logger.info(f"Deployment group environment setup complete: {dg_name}")
 
