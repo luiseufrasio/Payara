@@ -400,10 +400,7 @@ pipeline {
                         setupDomain()
 
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
-                        sh """curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"""
-                        sh """python3 get-pip.py --user"""
-                        sh """$HOME/.local/bin/pip install -r appserver/tests/functional/deployment-groups/requirements.txt"""
-                        sh """export PAYARA_HOME=${pwd()}/payara7 && $HOME/.local/bin/pytest appserver/tests/functional/deployment-groups/test_deployment_group.py -v -s"""
+                        sh """export PAYARA_HOME=${pwd()}/payara7 && pytest appserver/tests/functional/deployment-groups/test_deployment_group.py -v -s"""
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran deployment groups tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
 
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running asadmin tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
