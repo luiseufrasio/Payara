@@ -40,6 +40,8 @@
 package fish.payara.data.core.cdi.extension;
 
 import org.junit.Test;
+import org.mockito.Mockito;
+import jakarta.transaction.TransactionManager;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.Map;
@@ -54,7 +56,11 @@ public class RepositoryImplTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testUnsupportedMethodThrowsException() throws Throwable {
         Map<Class<?>, List<QueryMetadata>> queriesPerEntityClass = Collections.emptyMap();
-        RepositoryImpl<MyRepository> handler = new RepositoryImpl<>(MyRepository.class, queriesPerEntityClass, "testApp", null);
+        RepositoryImpl<MyRepository> handler = new RepositoryImpl<>(MyRepository.class, queriesPerEntityClass, "testApp", () -> null);
+        
+        // Inject a mock transaction manager to avoid NullPointerException
+        handler.setTransactionManager(Mockito.mock(TransactionManager.class));
+        
         MyRepository proxy = (MyRepository) Proxy.newProxyInstance(
                 MyRepository.class.getClassLoader(),
                 new Class[]{MyRepository.class},

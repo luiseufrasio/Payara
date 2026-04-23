@@ -116,9 +116,13 @@ public class RepositoryImpl<T> implements InvocationHandler {
     private final Map<Class<?>, Member> idAccessorCache = new ConcurrentHashMap<>();
 
     public RepositoryImpl(Class<T> repositoryInterface, Map<Class<?>, List<QueryMetadata>> queriesPerEntityClass, String applicationName, String dataStore) {
+        this(repositoryInterface, queriesPerEntityClass, applicationName, getEntityManagerSupplier(applicationName, dataStore));
+    }
+
+    public RepositoryImpl(Class<T> repositoryInterface, Map<Class<?>, List<QueryMetadata>> queriesPerEntityClass, String applicationName, Supplier<EntityManager> entityManagerSupplier) {
         this.repositoryInterface = repositoryInterface;
         this.applicationName = applicationName;
-        this.entityManagerSupplier = getEntityManagerSupplier(applicationName, dataStore);
+        this.entityManagerSupplier = entityManagerSupplier;
 
         Map<Method, QueryMetadata> r = queriesPerEntityClass.entrySet().stream().map(e -> e.getValue())
                 .flatMap(List::stream).collect(Collectors.toMap(QueryMetadata::getMethod, Function.identity()));
@@ -658,8 +662,18 @@ public class RepositoryImpl<T> implements InvocationHandler {
                 entityManagerSupplier.get(), getTransactionManager(), dataParameter);
     }
 
+    public void setTransactionManager(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
+
     public TransactionManager getTransactionManager() {
+        if (transactionManager != null) {
+            return transactionManager;
+        }
         ServiceLocator locator = Globals.get(ServiceLocator.class);
+        if (locator == null) {
+            return null;
+        }
         ServiceHandle<TransactionManager> inhabitant =
                 locator.getServiceHandle(TransactionManager.class);
         if (inhabitant != null && inhabitant.isActive()) {
