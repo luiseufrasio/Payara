@@ -166,7 +166,19 @@ public class RepositoryImpl<T> implements InvocationHandler {
             return InvocationHandler.invokeDefault(proxy, method, args);
         }
 
+        if (method.getDeclaringClass().equals(Object.class)) {
+            return switch (method.getName()) {
+                case "toString" -> repositoryInterface.getName() + " Proxy";
+                case "hashCode" -> System.identityHashCode(proxy);
+                case "equals" -> proxy == args[0];
+                default -> method.invoke(this, args);
+            };
+        }
+
         QueryMetadata queryMetadata = queries.get(method);
+        if (queryMetadata == null) {
+            throw new UnsupportedOperationException("The method " + method.getName() + " is not supported by the Jakarta Data provider.");
+        }
         QueryData dataForQuery = new QueryData(queryMetadata);
         Object objectToReturn;
         startTransactionComponents();
