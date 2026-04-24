@@ -50,6 +50,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test case for invoking an unsupported Jakarta Data repository method.
@@ -60,21 +62,23 @@ public class UnsupportedMethodTest {
     @Deployment
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class, "unsupported-method-test.war")
-                .addPackages(true, "fish.payara.samples.data.entity")
-                .addPackages(true, "fish.payara.samples.data.repo")
-                .addAsResource("META-INF/persistence.xml")
-                .addAsWebInfResource("WEB-INF/web.xml", "web.xml")
+                .addClass(UnsupportedRepo.class)
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 
     @Inject
     private UnsupportedRepo unsupportedRepo;
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testInvokeUnsupportedMethodThrowsException() {
+    @Test
+    public void invokingUnsupportedMethodThrowsWithMethodName() {
         assertNotNull("UnsupportedRepo should be injected", unsupportedRepo);
-        
-        // This method cannot be implemented by the provider and should throw UnsupportedOperationException
-        unsupportedRepo.doSomethingUnsupported("test");
+
+        UnsupportedOperationException ex = assertThrows(
+                UnsupportedOperationException.class,
+                () -> unsupportedRepo.doSomethingUnsupported("test"));
+
+        assertTrue(
+                "Exception message should identify the offending method, but was: " + ex.getMessage(),
+                ex.getMessage().contains("doSomethingUnsupported"));
     }
 }

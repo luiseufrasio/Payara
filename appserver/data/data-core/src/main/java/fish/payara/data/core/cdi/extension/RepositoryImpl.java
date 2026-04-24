@@ -662,18 +662,8 @@ public class RepositoryImpl<T> implements InvocationHandler {
                 entityManagerSupplier.get(), getTransactionManager(), dataParameter);
     }
 
-    public void setTransactionManager(TransactionManager transactionManager) {
-        this.transactionManager = transactionManager;
-    }
-
     public TransactionManager getTransactionManager() {
-        if (transactionManager != null) {
-            return transactionManager;
-        }
         ServiceLocator locator = Globals.get(ServiceLocator.class);
-        if (locator == null) {
-            return null;
-        }
         ServiceHandle<TransactionManager> inhabitant =
                 locator.getServiceHandle(TransactionManager.class);
         if (inhabitant != null && inhabitant.isActive()) {

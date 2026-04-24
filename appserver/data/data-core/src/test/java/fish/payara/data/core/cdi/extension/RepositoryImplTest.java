@@ -39,33 +39,81 @@
  */
 package fish.payara.data.core.cdi.extension;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import jakarta.transaction.TransactionManager;
+
 import java.lang.reflect.Proxy;
 import java.util.Collections;
-import java.util.Map;
-import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class RepositoryImplTest {
 
-    interface MyRepository {
+    private interface UnsupportedMethodRepository {
         void unsupportedMethod();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testUnsupportedMethodThrowsException() throws Throwable {
-        Map<Class<?>, List<QueryMetadata>> queriesPerEntityClass = Collections.emptyMap();
-        RepositoryImpl<MyRepository> handler = new RepositoryImpl<>(MyRepository.class, queriesPerEntityClass, "testApp", () -> null);
-        
-        // Inject a mock transaction manager to avoid NullPointerException
-        handler.setTransactionManager(Mockito.mock(TransactionManager.class));
-        
-        MyRepository proxy = (MyRepository) Proxy.newProxyInstance(
-                MyRepository.class.getClassLoader(),
-                new Class[]{MyRepository.class},
+    private UnsupportedMethodRepository proxy;
+
+    @Before
+    public void setUp() {
+        RepositoryImpl<UnsupportedMethodRepository> handler = new RepositoryImpl<>(
+                UnsupportedMethodRepository.class,
+                Collections.emptyMap(),
+                "testApp",
+                () -> null);
+
+        proxy = (UnsupportedMethodRepository) Proxy.newProxyInstance(
+                UnsupportedMethodRepository.class.getClassLoader(),
+                new Class<?>[]{UnsupportedMethodRepository.class},
                 handler);
-        
-        proxy.unsupportedMethod();
+    }
+
+    @Test
+    public void unsupportedMethodThrowsUnsupportedOperationExceptionWithMethodName() {
+        UnsupportedOperationException ex = assertThrows(
+                UnsupportedOperationException.class,
+                proxy::unsupportedMethod);
+
+        assertTrue(
+                "Exception message should identify the offending method, but was: " + ex.getMessage(),
+                ex.getMessage().contains("unsupportedMethod"));
+    }
+
+    @Test
+    public void toStringReturnsRepositoryInterfaceName() {
+        String text = proxy.toString();
+
+        assertTrue(
+                "toString should reference the repository interface, but was: " + text,
+                text.contains(UnsupportedMethodRepository.class.getName()));
+    }
+
+    @Test
+    public void hashCodeIsStableAndMatchesIdentityHashCode() {
+        assertEquals(System.identityHashCode(proxy), proxy.hashCode());
+        assertEquals(proxy.hashCode(), proxy.hashCode());
+    }
+
+    @Test
+    public void equalsIsReflexiveAndDistinguishesDifferentProxies() {
+        assertTrue("Proxy should be equal to itself", proxy.equals(proxy));
+        assertFalse("Proxy should not be equal to null", proxy.equals(null));
+
+        RepositoryImpl<UnsupportedMethodRepository> otherHandler = new RepositoryImpl<>(
+                UnsupportedMethodRepository.class,
+                Collections.emptyMap(),
+                "testApp",
+                () -> null);
+        UnsupportedMethodRepository otherProxy = (UnsupportedMethodRepository) Proxy.newProxyInstance(
+                UnsupportedMethodRepository.class.getClassLoader(),
+                new Class<?>[]{UnsupportedMethodRepository.class},
+                otherHandler);
+
+        assertNotEquals("Distinct proxies should not be equal", proxy, otherProxy);
     }
 }
