@@ -37,13 +37,15 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+// Portions Copyright 2026 Payara Foundation and/or its affiliates
 
-package com.sun.enterprise.deployment.node.runtime;
+package fish.payara.deployment.node.runtime;
 
 import com.sun.enterprise.deployment.ApplicationClientDescriptor;
 import com.sun.enterprise.deployment.node.XMLElement;
-import com.sun.enterprise.deployment.xml.RuntimeTagNames;
+import com.sun.enterprise.deployment.node.runtime.AppClientRuntimeNode;
 import com.sun.enterprise.deployment.xml.DTDRegistry;
+import com.sun.enterprise.deployment.xml.RuntimeTagNames;
 
 import java.util.Map;
 
@@ -52,45 +54,44 @@ import java.util.Map;
  * This node is responsible for handling all runtime information for 
  * application client.
  */
-@Deprecated
-public class GFAppClientRuntimeNode extends AppClientRuntimeNode {
+public class PayaraAppClientRuntimeNode extends AppClientRuntimeNode {
 
-    public GFAppClientRuntimeNode(ApplicationClientDescriptor descriptor) {
+    public PayaraAppClientRuntimeNode(ApplicationClientDescriptor descriptor) {
         super(descriptor);
     }
 
-    public GFAppClientRuntimeNode() {
+    public PayaraAppClientRuntimeNode() {
     }
-    
+
     /**
      * @return the XML tag associated with this XMLNode
      */
     protected XMLElement getXMLRootTag() {
-        return new XMLElement(RuntimeTagNames.GF_APPCLIENT_RUNTIME_TAG);
-    }    
-    
-    /** 
+        return new XMLElement(RuntimeTagNames.PAYARA_APPCLIENT_RUNTIME_TAG);
+    }
+
+    /**
      * @return the DOCTYPE that should be written to the XML file
      */
     public String getDocType() {
-        return DTDRegistry.GF_APPCLIENT_602_DTD_PUBLIC_ID;
+        return DTDRegistry.PAYARA_APPCLIENT_110_DTD_PUBLIC_ID;
     }
-    
+
     /**
      * @return the SystemID of the XML file
      */
     public String getSystemID() {
-        return DTDRegistry.GF_APPCLIENT_602_DTD_SYSTEM_ID;
+        return DTDRegistry.PAYARA_APPCLIENT_110_DTD_SYSTEM_ID;
     }
 
-   /**
-    * register this node as a root node capable of loading entire DD files
-    * 
-    * @param publicIDToDTD is a mapping between xml Public-ID to DTD 
-    * @return the doctype tag name
-    */
-   public static String registerBundle(Map publicIDToDTD) {    
-       publicIDToDTD.put(DTDRegistry.GF_APPCLIENT_602_DTD_PUBLIC_ID, DTDRegistry.GF_APPCLIENT_602_DTD_SYSTEM_ID);
-       return RuntimeTagNames.GF_APPCLIENT_RUNTIME_TAG;       
-   }    
+    /**
+     * register this node as a root node capable of loading entire DD files
+     *
+     * @param publicIDToDTD is a mapping between xml Public-ID to DTD
+     * @return the doctype tag name
+     */
+    public static String registerBundle(Map publicIDToDTD) {
+        publicIDToDTD.put(DTDRegistry.PAYARA_APPCLIENT_110_DTD_PUBLIC_ID, DTDRegistry.PAYARA_APPCLIENT_110_DTD_SYSTEM_ID);
+        return RuntimeTagNames.PAYARA_APPCLIENT_RUNTIME_TAG;
+    }
 }

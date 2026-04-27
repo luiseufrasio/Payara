@@ -159,17 +159,8 @@ public interface DescriptorConstants {
     /** The name of the Payara deployment descriptor entry in the client jar. */
     String PAYARA_APP_CLIENT_JAR_ENTRY = "META-INF/"+ PAYARA_PREFIX + "application-client.xml";
 
-    /** The name of the WEB-INF entry in a war. */
-    String WEB_INF = "WEB-INF";
-
-    // no need for File.separator
-    String WEB_INF_CLASSES_DIR = WEB_INF + "/CLASSES";
-
-    // no need for File.separator
-    String WEB_INF_LIB_DIR = WEB_INF + "/LIB";
-
-    /** The file extension for jsp tag library. */
-    String TAG_LIB_EXT = ".tld";
+    /** The name of the Payara deployment descriptor entry inside the ear. */
+    String PAYARA_APPLICATION_JAR_ENTRY = "META-INF/"+ PAYARA_PREFIX + "application.xml";
 
     /** The name of the deployment descriptor entry in the client jar. */
     String APP_CLIENT_DD_ENTRY = "META-INF" 
@@ -181,26 +172,11 @@ public interface DescriptorConstants {
 
     /** The name of the deployment descriptor entry in the client jar. */
     @Deprecated
-    String S1AS_APP_CLIENT_DD_ENTRY = "META-INF" 
-                                   + File.separator
-                                   + S1AS_PREFIX+"application-client.xml";
+    String S1AS_APP_CLIENT_DD_ENTRY = "META-INF" + File.separator + S1AS_PREFIX + "application-client.xml";
 
     /** The Sun application client entry inside a jar file. */
     @Deprecated
-    String S1AS_APP_CLIENT_JAR_ENTRY = "META-INF/"
-                                    + S1AS_PREFIX + "application-client.xml";
-
-    /** The manifest file name from an archive. */
-    String MANIFEST_ENTRY = "META-INF" + File.separator + "MANIFEST.MF";
-
-    /** The manifest file name from an archive; without File.separator */
-    String JAR_MANIFEST_ENTRY = "META-INF/MANIFEST.MF";
-
-    /** prefix used for application role mapper key */
-    String APP_ROLEMAPPER_PREFIX = "app_";
-
-    /** prefix used for module role mapper key */
-    String MODULE_ROLEMAPPER_PREFIX = "module_";
+    String S1AS_APP_CLIENT_JAR_ENTRY = "META-INF/" + S1AS_PREFIX + "application-client.xml";
     
     /** JaxRPC deployment descriptor file */
     String JAXRPC_JAR_ENTRY = "WEB-INF/jaxrpc-ri.xml";
@@ -213,7 +189,4 @@ public interface DescriptorConstants {
 
     /** Persistence Unit Deployment Descriptor entry */
     String PERSISTENCE_DD_ENTRY = "META-INF/persistence.xml";
-
-    /** Object to Relational mapping DD entry */
-    String ORM_DD_ENTRY = "META-INF/orm.xml";
 }

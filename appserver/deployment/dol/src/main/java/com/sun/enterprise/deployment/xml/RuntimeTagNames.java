@@ -69,6 +69,7 @@ public interface RuntimeTagNames extends TagNames {
     String PAYARA_APPLICATION_RUNTIME_TAG = "payara-application";
     String PAYARA_WEB_RUNTIME_TAG = "payara-web-app";
     String PAYARA_EJB_RUNTIME_TAG = "payara-ejb-jar";
+    String PAYARA_APPCLIENT_RUNTIME_TAG = "payara-application-client";
 
     // The name of the deployment context property used to disable implicit bean discovery for a
     // particular application deployment.
