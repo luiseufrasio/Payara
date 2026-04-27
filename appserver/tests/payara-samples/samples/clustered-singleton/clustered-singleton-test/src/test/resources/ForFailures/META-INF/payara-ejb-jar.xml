@@ -1,5 +1,5 @@
-<!DOCTYPE glassfish-ejb-jar PUBLIC "-//GlassFish.org// DTD GlassFish Application Server 3.1 EJB 3.1//EN" "http://glassfish.org/dtds/glassfish-ejb-jar_3_1-1.dtd">
-<glassfish-ejb-jar>
+<!DOCTYPE payara-ejb-jar PUBLIC "-//Payara.fish//DTD Payara Application Server 7 EJB 4.0//EN" "https://docs.payara.fish/schemas/payara-ejb-jar_4_0-0.dtd">
+<payara-ejb-jar>
     <enterprise-beans>
         <ejb>
             <ejb-name>ClusteredSingletonEjbXml</ejb-name>
@@ -7,4 +7,4 @@
             <clustered-attach-postconstruct>true</clustered-attach-postconstruct>
         </ejb>
     </enterprise-beans>
-</glassfish-ejb-jar>
+</payara-ejb-jar>
