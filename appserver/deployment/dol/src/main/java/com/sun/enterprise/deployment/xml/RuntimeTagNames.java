@@ -102,9 +102,7 @@ public interface RuntimeTagNames extends TagNames {
     String ACTIVATION_CONFIG_PROPERTY_NAME = "activation-config-property-name";
     String ACTIVATION_CONFIG_PROPERTY_VALUE = "activation-config-property-value";
 
-    String APPLICATION_CLIENT = "app-client";
     String DEFAULT_RESOURCE_PRINCIPAL = "default-resource-principal";
-    String DISPLAY_NAME = "display-name";
     String EJB = "ejb";
     String EJB_NAME = "ejb-name";
     String EJBS = "enterprise-beans";
@@ -112,48 +110,29 @@ public interface RuntimeTagNames extends TagNames {
     String FIELD = "field";
 
     String GROUP = "group";
-    String GROUPS = "groups";
-    String JOIN_OBJECT = "join-object";
     String JNDI_NAME = "jndi-name";
-    String LOCAL_PART = "localpart";
-    String MAIL_CONFIG = "mail-configuration";
     String MAIL_FROM = "mail-from";
     String MAIL_HOST = "mail-host";
     String METHOD = "method";
     String NAME = "name";
-    String NAMESPACE_URI = "namespace-uri";
-    String OPERATION = "operation";
 
     String PASSWORD = "password";
-    String PRINCIPALS = "principals";
     String PRINCIPAL = "principal";
-    String REMOTE_ENTITY = "remote-entity";
-    String ROLE = "role";
-    String ROLE_MAPPING = "rolemapping";
-    String ROLE_ENTRY = "role";
-    String SERVER_NAME = "server-name";
 
     String SERVLET = "servlet";
     String SERVLET_NAME = "servlet-name";
     String SOURCE = "source";
-    String SINK = "sink";
     String SQL = "sql";
-    String SQL_STATEMENT = "sql-statement";
-    String TABLE_CREATE = "table-create-sql";
-    String TABLE_REMOVE = "table-remove-sql";
 
 
     String UNIQUE_ID = "unique-id";
     String WEB = "web";
-    String WEB_SERVICE_ENDPOINT = "web-service-endpoint";
 
 
-    String EJB_IMPL = "ejb-impl";
     String REMOTE_IMPL = "remote-impl";
     String LOCAL_IMPL = "local-impl";
     String REMOTE_HOME_IMPL = "remote-home-impl";
     String LOCAL_HOME_IMPL = "local-home-impl";
-    String STATE_IMPL = "state-impl";
     String GEN_CLASSES = "gen-classes";
 
     // acceptable values
@@ -162,11 +141,9 @@ public interface RuntimeTagNames extends TagNames {
 
     // SECURITY related
     String SECURITY_ROLE_MAPPING = "security-role-mapping";
-    String SECURITY_ROLE_ASSIGNMENT = "security-role-assignment";
     String ROLE_NAME = "role-name";
     String PRINCIPAL_NAME = "principal-name";
     String GROUP_NAME = "group-name";
-    String EXTERNALLY_DEFINED = "externally-defined";
 
     // common
     String EJB_REF = "ejb-ref";
@@ -215,9 +192,6 @@ public interface RuntimeTagNames extends TagNames {
     // checkpointed-methods in 8.1 and later releases
     String CHECKPOINT_AT_END_OF_METHOD =
         "checkpoint-at-end-of-method";
-    // prefetch-disabled
-    String PREFETCH_DISABLED =
-        "prefetch-disabled";
 
     String QUERY_METHOD = "query-method";
 
@@ -240,8 +214,6 @@ public interface RuntimeTagNames extends TagNames {
     String KEEP_STATE = "keep-state";
     String VERSION_IDENTIFIER = "version-identifier";
     String APPLICATION_PARAM = "application-param";
-    String PARAM_NAME = "param-name";
-    String PARAM_VALUE = "param-value";
     String MODULE = "module";
     String TYPE = "type";
     String PATH = "path";
