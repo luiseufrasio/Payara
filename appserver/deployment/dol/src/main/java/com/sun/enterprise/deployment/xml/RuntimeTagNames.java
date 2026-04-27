@@ -68,6 +68,7 @@ public interface RuntimeTagNames extends TagNames {
     String PAYARA_JAXRS_ROLES_ALLOWED_ENABLED = "jaxrs-roles-allowed-enabled";
     String PAYARA_APPLICATION_RUNTIME_TAG = "payara-application";
     String PAYARA_WEB_RUNTIME_TAG = "payara-web-app";
+    String PAYARA_EJB_RUNTIME_TAG = "payara-ejb-jar";
 
     // The name of the deployment context property used to disable implicit bean discovery for a
     // particular application deployment.

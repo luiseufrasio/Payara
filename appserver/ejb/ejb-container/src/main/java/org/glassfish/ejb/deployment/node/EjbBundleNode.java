@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import fish.payara.ejb.deployment.node.runtime.PayaraEjbBundleRuntimeNode;
 import org.glassfish.ejb.deployment.EjbTagNames;
 import org.glassfish.ejb.deployment.descriptor.EjbApplicationExceptionInfo;
 import org.glassfish.ejb.deployment.descriptor.EjbBundleDescriptorImpl;
@@ -125,6 +126,7 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
 
         result.put(EjbBundleRuntimeNode.registerBundle(publicIDToDTD), EjbBundleRuntimeNode.class);
         result.put(GFEjbBundleRuntimeNode.registerBundle(publicIDToDTD), GFEjbBundleRuntimeNode.class);
+        result.put(PayaraEjbBundleRuntimeNode.registerBundle(publicIDToDTD), PayaraEjbBundleRuntimeNode.class);
 
         return result;
     }

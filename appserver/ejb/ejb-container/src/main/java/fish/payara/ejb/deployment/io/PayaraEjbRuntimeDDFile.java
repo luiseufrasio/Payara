@@ -39,14 +39,7 @@
  */
 // Portions Copyright 2026 Payara Foundation and/or its affiliates
 
-package org.glassfish.ejb.deployment.io;
-
-import org.glassfish.deployment.common.Descriptor;
-import org.glassfish.ejb.deployment.descriptor.EjbBundleDescriptorImpl;
-import org.glassfish.ejb.deployment.node.runtime.GFEjbBundleRuntimeNode;
-import org.glassfish.hk2.api.PerLookup;
-
-import org.jvnet.hk2.annotations.Service;
+package fish.payara.ejb.deployment.io;
 
 import com.sun.ejb.containers.EjbContainerUtil;
 import com.sun.enterprise.deployment.io.ConfigurationDeploymentDescriptorFile;
@@ -54,23 +47,27 @@ import com.sun.enterprise.deployment.io.ConfigurationDeploymentDescriptorFileFor
 import com.sun.enterprise.deployment.io.DescriptorConstants;
 import com.sun.enterprise.deployment.node.RootXMLNode;
 import com.sun.enterprise.deployment.util.DOLUtils;
+import fish.payara.ejb.deployment.node.runtime.PayaraEjbBundleRuntimeNode;
+import org.glassfish.deployment.common.Descriptor;
+import org.glassfish.ejb.deployment.descriptor.EjbBundleDescriptorImpl;
+import org.glassfish.hk2.api.PerLookup;
+import org.jvnet.hk2.annotations.Service;
 
 /**
  * This class is responsible for handling the XML configuration information
- * for the Glassfish EJB Container
+ * for the Payara EJB Container
  */
 @ConfigurationDeploymentDescriptorFileFor(EjbContainerUtil.EJB_CONTAINER_NAME)
 @Service
 @PerLookup
-@Deprecated
-public class GFEjbRuntimeDDFile extends ConfigurationDeploymentDescriptorFile {
+public class PayaraEjbRuntimeDDFile extends ConfigurationDeploymentDescriptorFile {
     /**
      * @return the location of the DeploymentDescriptor file for a
      *         particular type of J2EE Archive
      */
     public String getDeploymentDescriptorPath() {
         return DOLUtils.warType().equals(getArchiveType()) ?
-        		DescriptorConstants.GF_EJB_IN_WAR_ENTRY : DescriptorConstants.GF_EJB_JAR_ENTRY;
+                DescriptorConstants.PAYARA_EJB_IN_WAR_ENTRY : DescriptorConstants.PAYARA_EJB_JAR_ENTRY;
     }
 
     /**
@@ -80,7 +77,7 @@ public class GFEjbRuntimeDDFile extends ConfigurationDeploymentDescriptorFile {
      */
     public RootXMLNode<EjbBundleDescriptorImpl> getRootXMLNode(Descriptor descriptor) {
         if (descriptor instanceof EjbBundleDescriptorImpl) {
-            return new GFEjbBundleRuntimeNode((EjbBundleDescriptorImpl) descriptor);
+            return new PayaraEjbBundleRuntimeNode((EjbBundleDescriptorImpl) descriptor);
         }
         return null;
     }
