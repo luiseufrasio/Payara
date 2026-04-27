@@ -83,15 +83,23 @@ import com.sun.enterprise.deployment.xml.TagNames;
 public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
 
     public final static XMLElement tag = new XMLElement(EjbTagNames.EJB_BUNDLE_TAG);
+    @Deprecated
     public final static String PUBLIC_DTD_ID = "-//Sun Microsystems, Inc.//DTD Enterprise JavaBeans 2.0//EN";
+    @Deprecated
     public final static String PUBLIC_DTD_ID_12 = "-//Sun Microsystems, Inc.//DTD Enterprise JavaBeans 1.1//EN";
 
     /** The system ID of an ejb-jar document. */
+    @Deprecated
     public final static String SYSTEM_ID = "http://java.sun.com/dtd/ejb-jar_2_0.dtd";
+    @Deprecated
     public final static String SYSTEM_ID_12 = "http://java.sun.com/dtd/ejb-jar_1_1.dtd";
+    @Deprecated
     public final static String SCHEMA_ID_21 = "ejb-jar_2_1.xsd";
+    @Deprecated
     public final static String SCHEMA_ID_30 = "ejb-jar_3_0.xsd";
+    @Deprecated
     public final static String SCHEMA_ID_31 = "ejb-jar_3_1.xsd";
+    @Deprecated
     public final static String SCHEMA_ID_32 = "ejb-jar_3_2.xsd";
     public final static String SCHEMA_ID_40 = "ejb-jar_4_0.xsd";
     public final static String SCHEMA_ID = "ejb-jar_4_1.xsd"; // This is currently being misused - EJB 4.1 doesn't exist yet - we've added vendor-specific things which should be a part of a payara-ejb-jar.xml descriptor instead
@@ -113,7 +121,7 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
 
     @Override
     public Map<String, Class<?>> registerRuntimeBundle(Map<String, String> publicIDToDTD, Map<String, List<Class<?>>> versionUpgrades) {
-        Map<String, Class<?>> result = new HashMap<String, Class<?>>();
+        Map<String, Class<?>> result = new HashMap<>();
 
         result.put(EjbBundleRuntimeNode.registerBundle(publicIDToDTD), EjbBundleRuntimeNode.class);
         result.put(GFEjbBundleRuntimeNode.registerBundle(publicIDToDTD), GFEjbBundleRuntimeNode.class);
@@ -122,7 +130,7 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
     }
 
     private static List<String> initSystemIDs() {
-        List<String> systemIDs = new ArrayList<String>(3);
+        List<String> systemIDs = new ArrayList<>(3);
         systemIDs.add(SCHEMA_ID);
         systemIDs.add(SCHEMA_ID_40);
         systemIDs.add(SCHEMA_ID_32);
