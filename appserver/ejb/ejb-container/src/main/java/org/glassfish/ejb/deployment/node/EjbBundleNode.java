@@ -103,8 +103,7 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
     @Deprecated
     public final static String SCHEMA_ID_32 = "ejb-jar_3_2.xsd";
     public final static String SCHEMA_ID_40 = "ejb-jar_4_0.xsd";
-    public final static String SCHEMA_ID = "ejb-jar_4_1.xsd"; // This is currently being misused - EJB 4.1 doesn't exist yet - we've added vendor-specific things which should be a part of a payara-ejb-jar.xml descriptor instead
-    public final static String SPEC_VERSION = "4.1"; // This is currently being misused - EJB 4.1 doesn't exist yet - we've added vendor-specific things which should be a part of a payara-ejb-jar.xml descriptor instead
+    public final static String SPEC_VERSION = "4.0";
     private final static List<String> systemIDs = initSystemIDs();
 
     /**
@@ -133,7 +132,6 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
 
     private static List<String> initSystemIDs() {
         List<String> systemIDs = new ArrayList<>(3);
-        systemIDs.add(SCHEMA_ID);
         systemIDs.add(SCHEMA_ID_40);
         systemIDs.add(SCHEMA_ID_32);
         systemIDs.add(SCHEMA_ID_31);
@@ -257,7 +255,7 @@ public class EjbBundleNode extends AbstractBundleNode<EjbBundleDescriptorImpl> {
 
     @Override
     public String getSystemID() {
-        return SCHEMA_ID;
+        return SCHEMA_ID_40;
     }
 
     @Override
