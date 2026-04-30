@@ -480,6 +480,6 @@ public class TransactionEnlistmentTests {
     }
 
     private static Company newCompany(UUID id, String name) {
-        return Company.of(id, name, "Tech", true, null, Instant.now());
+        return Company.of(id, name, "Tech", true, UUID.randomUUID(), Instant.now());
     }
 }
