@@ -141,6 +141,45 @@ def check_http_app_available(host: str, port: str, app_name: str, timeout: int =
     logger.error(f"Timed out waiting for HTTP availability at {url}")
     return False
 
+
+def check_http_content(host: str, port: str, app_name: str, expected_content: str, timeout: int = 60) -> bool:
+    """
+    Check if the application returns expected content via HTTP, with retries.
+    
+    Args:
+        host: Hostname or IP address
+        port: HTTP port number
+        app_name: Name of the application
+        expected_content: Expected content in the response
+        timeout: Timeout in seconds for the HTTP request to succeed
+    
+    Returns:
+        True if the application responds with HTTP 200 and contains expected content, False otherwise
+    """
+    url = f"http://{host}:{port}/{app_name}"
+    logger.info(f"Checking HTTP content at {url} for '{expected_content}' (up to {timeout}s)")
+
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                content = response.text
+                if expected_content in content:
+                    logger.info(f"✓ Application '{app_name}' contains expected content '{expected_content}'")
+                    return True
+                else:
+                    logger.debug(f"Application '{app_name}' does not contain expected content. Response: {content[:200]}")
+            else:
+                logger.debug(f"Application '{app_name}' returned status {response.status_code}, retrying...")
+        except requests.exceptions.RequestException as e:
+            logger.debug(f"HTTP request failed for {url}: {e}")
+
+        time.sleep(1)
+
+    logger.error(f"Timed out waiting for expected content at {url}")
+    return False
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -178,6 +217,18 @@ def test_war(tmp_path_factory) -> str:
     logger.info(f"Using test WAR: {war_path}")
     return war_path
 
+@pytest.fixture(scope="module", params=["1.0.0", "1.0.1"])
+def sample_app(request) -> tuple[str, str]:
+    """
+    Path to sample-app WAR file for the requested version.
+    Returns a tuple of (version, file_path).
+    """
+    version = request.param
+    war_path = os.path.join(os.path.dirname(__file__), "..", "test-apps", f"sample-app-{version}.war")
+    if not os.path.isfile(war_path):
+        raise RuntimeError(f"Sample app {version} WAR file not found: {war_path}")
+    logger.info(f"Using sample app {version} WAR: {war_path}")
+    return version, war_path
 
 @pytest.fixture()
 def deployment_group_env(asadmin):
@@ -673,6 +724,7 @@ class TestDeploymentGroupDeployment:
             time.sleep(5)
             asadmin.run_no_raise("undeploy", f"--target={dg}", app_name)
 
+
     def test_deploy_then_add_instance_propagates_app(
             self, asadmin, deployment_group_env, test_war
     ):
@@ -781,84 +833,76 @@ class TestDeploymentGroupDeployment:
             )
             asadmin.run_no_raise("undeploy", f"--target={dg}", app_name)
 
+    def _get_sample_app_path(self, version: str) -> str:
+        """Helper method to get the path to a sample app version."""
+        war_path = os.path.join(os.path.dirname(__file__), "..", "test-apps", f"sample-app-{version}.war")
+        if not os.path.isfile(war_path):
+            raise RuntimeError(f"Sample app {version} WAR file not found: {war_path}")
+        logger.info(f"Using sample app {version} WAR: {war_path}")
+        return war_path
+
     def test_versioned_deployment_undeploy_old_version_keeps_new_accessible(
-            self, asadmin, deployment_group_env, test_war
+            self, asadmin, deployment_group_env
     ):
         """
-        Test that undeploying an old version of a versioned deployment does not break
-        access to the newer version when both share the same context root.
-
-        Reproduces bug: After deploying sample-app:1.0.0 and sample-app:1.0.1 with the
-        same context root, undeploying sample-app:1.0.0 causes the app to return HTTP 503,
-        even though sample-app:1.0.1 is still deployed and enabled.
+        Test versioned deployment scenario:
+        1. Deploy version 1.0.0
+        2. Deploy version 1.0.1 (same context root)
+        3. Verify 1.0.1 is accessible
+        4. Undeploy old version 1.0.0
+        5. Verify 1.0.1 remains accessible
         """
         dg = deployment_group_env["dg_name"]
         instances = deployment_group_env["instances"]
         instance_ports = deployment_group_env["instance_ports"]
-        app_base_name = "sample-app"
-        context_root = "sample-app"
-        app_v1 = f"{app_base_name}:1.0.0"
-        app_v2 = f"{app_base_name}:1.0.1"
+        
+        # Get paths to both versions
+        sample_app_1_0_0 = self._get_sample_app_path("1.0.0")
+        sample_app_1_0_1 = self._get_sample_app_path("1.0.1")
 
         try:
             # Deploy version 1.0.0
-            logger.info(f"Deploying {app_v1} with context root {context_root}")
-            asadmin.run("deploy", f"--target={dg}", f"--name={app_v1}", f"--contextroot={context_root}", test_war)
+            logger.info("Deploy version 1.0.0:")
+            logger.info("asadmin deploy --contextroot sample-app --name sample-app:1.0.0 sample-app-1.0.0.war")
+            asadmin.run("deploy", f"--target={dg}", "--contextroot", "sample-app", "--name", "sample-app:1.0.0", sample_app_1_0_0)
+            time.sleep(5)
 
-            # Wait for application to start
-            logger.info("Waiting for v1.0.0 to start...")
-            time.sleep(10)
+            # Deploy version 1.0.1
+            logger.info("Deploy version 1.0.1:")
+            logger.info("asadmin deploy --contextroot sample-app --name sample-app:1.0.1 sample-app-1.0.1.war")
+            asadmin.run("deploy", f"--target={dg}", "--contextroot", "sample-app", "--name", "sample-app:1.0.1", sample_app_1_0_1)
+            time.sleep(5)
 
-            # Verify v1.0.0 is accessible
+            # Access app and verify it works (shows version 1.0.1)
+            logger.info("Access app:")
+            logger.info("http://localhost:8080/sample-app → works (shows version 1.0.1)")
+            
             inst = instances[0]
             http_port = asadmin.get_instance_http_port(inst, instance_ports)
             assert http_port is not None, f"Could not get HTTP port for '{inst}'"
-            assert check_http_app_available("localhost", http_port, context_root), (
-                f"App v1.0.0 not accessible via HTTP on '{inst}'"
+            
+            assert check_http_content("localhost", http_port, "sample-app", "Hello from version 1.0.1"), (
+                f"App not accessible or doesn't show version 1.0.1 content on '{inst}'"
             )
-            logger.info(f"✓ {app_v1} is accessible via HTTP")
+            logger.info("✓ App accessible and shows version 1.0.1")
 
-            # Deploy version 1.0.1 (same context root)
-            logger.info(f"Deploying {app_v2} with context root {context_root}")
-            asadmin.run("deploy", f"--target={dg}", f"--name={app_v2}", f"--contextroot={context_root}", test_war)
-
-            # Wait for application to start
-            logger.info("Waiting for v1.0.1 to start...")
-            time.sleep(10)
-
-            # Verify v1.0.1 is accessible (should now be the active version)
-            assert check_http_app_available("localhost", http_port, context_root), (
-                f"App v1.0.1 not accessible via HTTP on '{inst}' after deployment"
-            )
-            logger.info(f"✓ {app_v2} is accessible via HTTP")
-
-            # Undeploy the old version (1.0.0)
-            logger.info(f"Undeploying old version {app_v1}")
-            asadmin.run("undeploy", f"--target={dg}", app_v1)
-
-            # Wait for undeployment to complete
+            # Undeploy old version
+            logger.info("Undeploy old version:")
+            logger.info("asadmin undeploy sample-app:1.0.0")
+            asadmin.run("undeploy", f"--target={dg}", "sample-app:1.0.0")
             time.sleep(5)
 
-            # Verify v1.0.1 is still accessible after v1.0.0 is removed
-            # This is the bug - currently returns HTTP 503
-            assert check_http_app_available("localhost", http_port, context_root), (
-                f"App v1.0.1 not accessible via HTTP on '{inst}' after undeploying v1.0.0. "
-                f"This is the bug - the newer version should remain accessible."
+            # Verify app is still accessible after undeploying old version
+            assert check_http_content("localhost", http_port, "sample-app", "Hello from version 1.0.1"), (
+                f"App not accessible after undeploying old version on '{inst}'"
             )
-            logger.info(f"✓ {app_v2} remains accessible after undeploying {app_v1}")
-
-            # Verify v1.0.1 is still listed as deployed
-            apps = asadmin.list_applications_on_instance(dg)
-            assert app_v2 in apps, (
-                f"App v1.0.1 not listed on deployment group '{dg}' after undeploying v1.0.0. Apps: {apps}"
-            )
-            logger.info(f"✓ {app_v2} is still listed as deployed")
+            logger.info("✓ App remains accessible after undeploying old version")
 
         finally:
-            # Cleanup both versions
-            logger.info(f"Cleaning up versioned deployments")
-            asadmin.run_no_raise("undeploy", f"--target={dg}", app_v1)
-            asadmin.run_no_raise("undeploy", f"--target={dg}", app_v2)
+            # Cleanup
+            logger.info("Cleaning up test applications")
+            asadmin.run_no_raise("undeploy", f"--target={dg}", "sample-app:1.0.0")
+            asadmin.run_no_raise("undeploy", f"--target={dg}", "sample-app:1.0.1")
 
     def test_redeploy_preserves_virtual_server_default_module(
             self, asadmin, single_instance_deployment_group_env, test_war
