@@ -200,18 +200,20 @@ def deployment_group_env(asadmin):
 @pytest.fixture()
 def single_instance_deployment_group_env(asadmin):
     """
-    Create a deployment group with a single standalone instance, yield the
-    environment dict, then clean up everything in reverse order.
+    Create a deployment group with a single standalone instance with a dedicated config,
+    yield the environment dict, then clean up everything in reverse order.
 
     Yielded dict keys:
         dg_name       – deployment group name
         instance      – instance name
         instance_port – HTTP port for the instance
+        config_name   – dedicated config name for the instance
         node_name     – "localhost-domain1" (default local node)
     """
     dg_name = "test-dg-single"
     node_name = "localhost-test-domain"
     instance_name = "test-inst-single"
+    config_name = "test-inst-single-config"
     instance_port = 28090
 
     logger.info(f"Setting up single instance deployment group environment: {dg_name}")
@@ -240,10 +242,17 @@ def single_instance_deployment_group_env(asadmin):
     asadmin.run_no_raise("stop-instance", instance_name)
     asadmin.run_no_raise("delete-instance", instance_name)
 
-    logger.info(f"Creating instance: {instance_name} with HTTP port {instance_port}")
+    # Delete config if it exists
+    asadmin.run_no_raise("delete-config", config_name)
+
+    logger.info(f"Creating config: {config_name} by copying default-config")
+    asadmin.run("copy-config", "default-config", config_name)
+
+    logger.info(f"Creating instance: {instance_name} with config {config_name} and HTTP port {instance_port}")
     asadmin.run(
         "create-instance",
         f"--node={node_name}",
+        f"--config={config_name}",
         f"--systemproperties=HTTP_LISTENER_PORT={instance_port}",
         instance_name,
     )
@@ -270,6 +279,7 @@ def single_instance_deployment_group_env(asadmin):
         "dg_name": dg_name,
         "instance": instance_name,
         "instance_port": instance_port,
+        "config_name": config_name,
         "node_name": node_name,
     }
 
@@ -304,6 +314,9 @@ def single_instance_deployment_group_env(asadmin):
                          f"--deploymentgroup={dg_name}")
     logger.info(f"Deleting instance: {instance_name}")
     asadmin.run_no_raise("delete-instance", instance_name)
+
+    logger.info(f"Deleting config: {config_name}")
+    asadmin.run_no_raise("delete-config", config_name)
 
     logger.info(f"Deleting deployment group: {dg_name}")
     asadmin.run_no_raise("delete-deployment-group", dg_name)
@@ -847,41 +860,63 @@ class TestDeploymentGroupDeployment:
             asadmin.run_no_raise("undeploy", f"--target={dg}", app_v1)
             asadmin.run_no_raise("undeploy", f"--target={dg}", app_v2)
 
-    def test_redeploy_breaks_virtual_server_default_module(
+    def test_redeploy_preserves_virtual_server_default_module(
             self, asadmin, single_instance_deployment_group_env, test_war
     ):
         """
-        Test that redeploying an application to a deployment group breaks the virtual server
-        when the application is used as the Default Web Module.
+        Test that redeploying an application to a deployment group does not break the virtual server
+        when the application is configured as the Default Web Module.
 
-        Reproduces bug: After setting a deployed app as the Default Web Module for an instance's
-        virtual server, redeploying the app with --force=true causes the virtual server endpoint
-        to fail with an exception in the server log.
+        Regression test for bug: After setting a deployed app as the Default Web Module for an instance's
+        virtual server (via the default-web-module attribute), redeploying the app with --force=true used to
+        cause the virtual server endpoint to fail with an exception in the server log. This test verifies the fix.
         """
         dg = single_instance_deployment_group_env["dg_name"]
         inst = single_instance_deployment_group_env["instance"]
+        config_name = single_instance_deployment_group_env["config_name"]
         http_port = str(single_instance_deployment_group_env["instance_port"])
         app_name = "clusterjsp-dg-default-module-test"
-        context_root = "/"
+        context_root = "/myapp"
 
         virtual_server = "server"
 
+        logger.info(f"Instance {inst} uses config: {config_name}")
+
         try:
-            logger.info(f"Deploying {app_name} to deployment group {dg}")
+            logger.info(f"Deploying {app_name} to deployment group {dg} with context root {context_root}")
             asadmin.run("deploy", f"--target={dg}", f"--name={app_name}", f"--contextroot={context_root}", test_war)
 
             logger.info("Waiting for application to start...")
             time.sleep(10)
 
+            # Verify app is accessible at its context root
+            app_url = f"http://localhost:{http_port}{context_root}/"
+            try:
+                response = requests.get(app_url, timeout=5)
+                assert response.status_code == 200, (
+                    f"App '{app_name}' not accessible via HTTP on '{inst}' at {app_url} (status: {response.status_code})"
+                )
+                logger.info(f"✓ {app_name} is accessible at {app_url}")
+            except requests.exceptions.RequestException as e:
+                pytest.fail(f"App '{app_name}' not accessible via HTTP on '{inst}' at {app_url}: {e}")
+
+            # Configure the app as the default web module for the virtual server
+            logger.info(f"Setting {app_name} as default-web-module for virtual server {virtual_server} in config {config_name}")
+            asadmin.run("set", f"configs.config.{config_name}.http-service.virtual-server.{virtual_server}.default-web-module={app_name}")
+
+            # Wait for the configuration change to take effect
+            time.sleep(5)
+
+            # Verify the app is now accessible at the root URL via the default web module
             root_url = f"http://localhost:{http_port}/"
             try:
                 response = requests.get(root_url, timeout=5)
                 assert response.status_code == 200, (
-                    f"App '{app_name}' not accessible via HTTP on '{inst}' at root URL (status: {response.status_code})"
+                    f"App '{app_name}' not accessible via HTTP on '{inst}' at root URL as default web module (status: {response.status_code})"
                 )
-                logger.info(f"✓ {app_name} is accessible via root URL")
+                logger.info(f"✓ {app_name} is accessible via root URL as default web module")
             except requests.exceptions.RequestException as e:
-                pytest.fail(f"App '{app_name}' not accessible via HTTP on '{inst}' at root URL: {e}")
+                pytest.fail(f"App '{app_name}' not accessible via HTTP on '{inst}' at root URL as default web module: {e}")
 
             logger.info(f"Redeploying {app_name} to deployment group {dg} with --force=true")
             asadmin.run("deploy", "--force=true", f"--target={dg}", f"--name={app_name}", f"--contextroot={context_root}",
@@ -890,6 +925,7 @@ class TestDeploymentGroupDeployment:
             logger.info("Waiting for redeployment to complete...")
             time.sleep(10)
 
+            # Verify the virtual server endpoint still works after redeploy
             logger.info(f"Testing virtual server endpoint after redeploy: {root_url}")
             try:
                 response = requests.get(root_url, timeout=5)
@@ -902,4 +938,7 @@ class TestDeploymentGroupDeployment:
                 pytest.fail(f"Virtual server endpoint failed after redeploy: {e}. This indicates the bug is not fixed.")
 
         finally:
+            # Clear the default-web-module configuration
+            logger.info(f"Clearing default-web-module for virtual server {virtual_server} in config {config_name}")
+            asadmin.run_no_raise("set", f"configs.config.{config_name}.http-service.virtual-server.{virtual_server}.default-web-module=")
             asadmin.run_no_raise("undeploy", f"--target={dg}", app_name)
