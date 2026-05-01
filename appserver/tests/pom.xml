@@ -67,6 +67,14 @@
                 <module>fish372-tests</module>
             </modules>
         </profile>
+        <profile>
+            <id>functional-tests</id>
+            <modules>
+                <module>functional/payara-micro</module>
+                <module>functional/embeddedtest</module>
+                <module>functional/payara-application-xml</module>
+            </modules>
+        </profile>
     </profiles>
 
     <build>
