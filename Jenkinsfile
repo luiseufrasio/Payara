@@ -431,7 +431,7 @@ pipeline {
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Ran asadmin test  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
 
                         echo '*#*#*#*#*#*#*#*#*#*#*#*#  Running payara-application.xml tests  *#*#*#*#*#*#*#*#*#*#*#*#*#*#*#'
-                        sh """mvn -V -B -ff clean verify --strict-checksums --Ppayara-server-remote \
+                        sh """mvn -V -B -ff clean verify --strict-checksums -Ppayara-server-remote \
                                 -Dsurefire.rerunFailingTestsCount=2 \
                                 -Dfailsafe.rerunFailingTestsCount=2 \
                                 -f appserver/tests/functional/payara-application-xml """
