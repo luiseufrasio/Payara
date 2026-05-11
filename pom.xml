@@ -46,7 +46,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fish.payara.server</groupId>
     <artifactId>payara-aggregator</artifactId>
-    <version>7.2026.5-SNAPSHOT</version>
+    <version>7.2026.6-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Payara Project</name>
@@ -269,7 +269,7 @@
         <concurro.version>3.1.0</concurro.version>
         <jakarta.data-api.version>1.0.1</jakarta.data-api.version>
         <validation.xml.root>${project.build.outputDirectory}</validation.xml.root>
-        <payara.security-connectors.version>4.0.0.Alpha3</payara.security-connectors.version>
+        <payara.security-connectors.version>4.0.0</payara.security-connectors.version>
         <hk2.version>4.0.0-M3.payara-p2</hk2.version>
         <osgi.version>8.0.0</osgi.version>
         <osgi.annotation.version>8.1.0</osgi.annotation.version>
